@@ -125,12 +125,25 @@ async function realProcess(s) {
 
   // 1) ¿Está corriendo el motor local? (soporta cualquier tamaño de video)
   stepState(0, "active"); setProgress(8);
-  const engineOk = await engineReachable();
+  let engineOk = await engineReachable();
 
-  if (engineOk) {
-    return processViaEngine(s);
+  // 2) Si no está, intentar arrancarlo automáticamente (sin abrir Terminal a mano)
+  if (!engineOk) {
+    const li = $("step-0"); if (li) { li.className = "active"; li.textContent = "⟳ Iniciando el motor local…"; }
+    const started = await tryStartEngine();
+    if (started) {
+      for (let i = 0; i < 25 && !engineOk; i++) {   // espera hasta ~25s a que levante
+        if (cancelRequested) return showView("config");
+        await wait(1000);
+        engineOk = await engineReachable();
+        setProgress(8 + Math.min(20, i));
+      }
+    }
   }
-  // 2) Respaldo: modo directo (solo clips pequeños <24MB, sin FFmpeg)
+
+  if (engineOk) return processViaEngine(s);
+
+  // 3) Respaldo: modo directo (solo clips pequeños <24MB, sin FFmpeg)
   return processDirect(s);
 }
 
@@ -140,6 +153,35 @@ async function engineReachable() {
     const j = await r.json();
     return !!(j && j.ok);
   } catch (e) { return false; }
+}
+
+// Ruta al lanzador del motor (junto a la carpeta del plugin: ../engine/start-*)
+async function engineScriptPath() {
+  const uxp = require("uxp");
+  const pf = await uxp.storage.localFileSystem.getPluginFolder();
+  const p = pf.nativePath;
+  const sep = p.indexOf("\\") >= 0 ? "\\" : "/";
+  const repo = p.substring(0, p.lastIndexOf(sep));       // sube de /plugin a /repo
+  const isWin = sep === "\\";
+  return repo + sep + "engine" + sep + (isWin ? "start-windows.bat" : "start-mac.command");
+}
+
+// Arranca el motor automáticamente (abre el lanzador)
+async function tryStartEngine() {
+  try {
+    const uxp = require("uxp");
+    const script = await engineScriptPath();
+    await uxp.shell.openPath(script, "Iniciar el motor local de CortesAI");
+    return true;
+  } catch (e) { return false; }
+}
+
+// Muestra el estado del motor en la pantalla de config
+async function refreshEngineStatus() {
+  const el = $("engineStatus"); if (!el) return;
+  const ok = await engineReachable();
+  el.textContent = ok ? "🟢 Motor conectado (listo para procesar cualquier tamaño)"
+                      : "⚪ Motor apagado — se iniciará solo al pulsar Iniciar";
 }
 
 // Camino principal: motor local (Node + FFmpeg + Groq) — cualquier tamaño
@@ -468,4 +510,6 @@ function bind() {
   if (saved) $("apiKey").value = saved;
   toggleApiKey();
   showView("config");
+  refreshEngineStatus();
+  setInterval(refreshEngineStatus, 5000);   // mantiene el estado del motor al día
 })();

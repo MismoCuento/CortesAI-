@@ -2,7 +2,7 @@
   "manifestVersion": 6,
   "id": "com.cortesai.panel",
   "name": "CortesAI",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "main": "index.html",
   "host": [
     {
@@ -28,6 +28,10 @@
     "allowCodeGenerationFromStrings": false,
     "network": {
       "domains": ["https://api.groq.com", "http://localhost:8765"]
+    },
+    "launchProcess": {
+      "schemes": ["file"],
+      "extensions": [".command", ".sh", ".bat", ".cmd"]
     }
   },
   "icons": [
