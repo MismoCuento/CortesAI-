@@ -439,8 +439,18 @@ async function buildTimeline() {
 
     const folder = lastMontage.folder;
     const sep = folder.indexOf("\\") >= 0 ? "\\" : "/";
+
+    // GARANTÍA: 1 corte por nombre de video (nada duplicado en el timeline)
+    const seenClip = {};
+    const cuts = lastMontage.cuts.filter(c => {
+      const k = normName(c.clip);
+      if (seenClip[k]) return false;
+      seenClip[k] = true;
+      return true;
+    });
+
     const uniqueNames = [];
-    lastMontage.cuts.forEach(c => { if (uniqueNames.indexOf(c.clip) < 0) uniqueNames.push(c.clip); });
+    cuts.forEach(c => { if (uniqueNames.indexOf(c.clip) < 0) uniqueNames.push(c.clip); });
     const paths = uniqueNames.map(n => folder + sep + n);
 
     // 1) Importar solo los clips que NO estén ya en el proyecto (evita duplicados)
@@ -490,11 +500,11 @@ async function buildTimeline() {
     const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
 
     // 3) Crear un subclip RECORTADO por cada corte (ref fresca + 1 transacción por corte)
-    setSt("3/5 Recortando " + lastMontage.cuts.length + " cortes…");
+    setSt("3/5 Recortando " + cuts.length + " cortes…");
     stage = "createSubClips";
     const subNames = [], subErrs = [];
-    for (let i = 0; i < lastMontage.cuts.length; i++) {
-      const c = lastMontage.cuts[i];
+    for (let i = 0; i < cuts.length; i++) {
+      const c = cuts[i];
       const item = await freshResolve(project, c.clip);
       if (!item) { subErrs.push("sin item: " + c.clip); continue; }
       const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + c.clip.replace(/\.[^.]+$/, "");
@@ -505,7 +515,7 @@ async function buildTimeline() {
         }, "CortesAI subclip " + nm);
         subNames.push(nm);
       } catch (e) { subErrs.push("sub[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
-      setSt("3/5 Recortando… " + subNames.length + "/" + lastMontage.cuts.length);
+      setSt("3/5 Recortando… " + subNames.length + "/" + cuts.length);
       await wait(10);
     }
 
@@ -528,7 +538,7 @@ async function buildTimeline() {
     let media = subItems, trimmed = true;
     if (!subItems.length) {
       trimmed = false;
-      media = lastMontage.cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
+      media = cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
     }
     setSt("5/5 Armando secuencia con " + media.length + " cortes…");
     const seq = await project.createSequenceFromMedia(seqName, media);
