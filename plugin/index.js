@@ -499,66 +499,49 @@ async function buildTimeline() {
     const T = (s2) => ppro.TickTime.createWithSeconds(s2);
     const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
 
-    // 3) Crear un subclip RECORTADO por cada corte (ref fresca + 1 transacción por corte)
-    setSt("3/5 Recortando " + cuts.length + " cortes…");
-    stage = "createSubClips";
-    const subNames = [], subErrs = [];
-    for (let i = 0; i < cuts.length; i++) {
-      const c = cuts[i];
-      const item = await freshResolve(project, c.clip);
-      if (!item) { subErrs.push("sin item: " + c.clip); continue; }
-      const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + c.clip.replace(/\.[^.]+$/, "");
-      try {
-        project.executeTransaction((cp) => {
-          const clip = ppro.ClipProjectItem.cast(item);
-          cp.addAction(clip.createSubClipAction(nm, T(c.start), T(c.end), true, { takeVideo: true, takeAudio: true }));
-        }, "CortesAI subclip " + nm);
-        subNames.push(nm);
-      } catch (e) { subErrs.push("sub[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
-      setSt("3/5 Recortando… " + subNames.length + "/" + cuts.length);
-      await wait(10);
-    }
-
-    // 4) Localizar los subclips creados (recursivo + reintentos)
-    setSt("4/5 Preparando cortes…");
-    stage = "findSubClips";
-    let subByName = {};
-    for (let attempt = 0; attempt < 15; attempt++) {
-      const all = await collectAllItems(await project.getRootItem(), []);
-      subByName = {};
-      for (const it of all) { let nm = null; try { nm = it.name; } catch (e) {} if (nm) subByName[nm] = it; }
-      if (subNames.length && subNames.every(n => subByName[n])) break;
-      await wait(400);
-    }
-    const subItems = subNames.map(n => subByName[n]).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
-
-    // 5) Armar la secuencia con los subclips recortados en orden.
-    //    Si por algún motivo no hay subclips, usa los clips completos como respaldo.
+    // 3) Crear la secuencia con los clips (completos) en el orden del montaje
+    setSt("3/4 Creando secuencia…");
     stage = "createSequenceFromMedia";
-    let media = subItems, trimmed = true;
-    if (!subItems.length) {
-      trimmed = false;
-      media = cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
-    }
-    setSt("5/5 Armando secuencia con " + media.length + " cortes…");
+    const media = cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
     const seq = await project.createSequenceFromMedia(seqName, media);
-    if (!seq) throw new Error("createSequenceFromMedia devolvió vacío (media=" + media.length + ", subErr=" + (subErrs[0] || "-") + ")");
+    if (!seq) throw new Error("createSequenceFromMedia devolvió vacío (media=" + media.length + ")");
     stage = "openSequence";
     try { await project.openSequence(seq); } catch (e) {}
 
-    let placed = "?";
-    try {
-      const vt = await seq.getVideoTrack(0);
-      let tis = null; try { tis = await vt.getTrackItems(1, false); } catch (e) { tis = await vt.getTrackItems(); }
-      placed = (tis && tis.length != null) ? String(tis.length) : "?";
-    } catch (e) {}
+    // 4) Recortar cada clip YA colocado en el timeline a su corte (4-6s) y cerrar huecos
+    setSt("4/4 Recortando en el timeline…");
+    stage = "trimTrackItems";
+    let trimmed = 0, trimErrs = [];
+    const vt = await seq.getVideoTrack(0);
+    let titems = null;
+    try { titems = await vt.getTrackItems(1, false); } catch (e) { try { titems = await vt.getTrackItems(); } catch (e2) { titems = null; } }
+    if (titems && titems.length) {
+      let playhead = 0;
+      const n = Math.min(titems.length, cuts.length);
+      for (let i = 0; i < n; i++) {
+        const ti = titems[i], c = cuts[i];
+        const ph = playhead;
+        try {
+          project.executeTransaction((cp) => {
+            cp.addAction(ti.createSetInPointAction(T(c.start)));
+            cp.addAction(ti.createSetOutPointAction(T(c.end)));
+          }, "CortesAI recorte " + i);
+          project.executeTransaction((cp) => {
+            cp.addAction(ti.createSetStartAction(T(ph)));
+          }, "CortesAI posicion " + i);
+          trimmed++;
+        } catch (e) { trimErrs.push("trim[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
+        playhead += Math.max(0.1, (c.end - c.start));
+        setSt("4/4 Recortando… " + trimmed + "/" + n);
+        await wait(10);
+      }
+    } else { trimErrs.push("sin track items para recortar"); }
 
-    const resumen = "Secuencia creada · " + placed + " clips en el timeline" +
-          (trimmed ? " (recortados)" : " (completos, respaldo)") +
-          (subErrs.length ? (" · nota: " + subErrs[0]) : "");
+    const resumen = "Secuencia creada · " + media.length + " clips · recortados=" + trimmed +
+          (trimErrs.length ? (" · err: " + trimErrs[0]) : " (OK)");
     setSt("✅ " + resumen);
     try { await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" },
-      body: "CONSTRUIR\n" + resumen + (subErrs.length ? ("\n" + subErrs.slice(0, 5).join("\n")) : "") }); } catch (e) {}
+      body: "CONSTRUIR\n" + resumen + (trimErrs.length ? ("\n" + trimErrs.slice(0, 5).join("\n")) : "") }); } catch (e) {}
   } catch (err) {
     setSt("Error en [" + stage + "]: " + ((err && err.message) ? err.message : String(err)));
   } finally {
