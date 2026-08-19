@@ -472,8 +472,8 @@ async function buildTimeline() {
         try {
           const clip = ppro.ClipProjectItem.cast(item);
           const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + c.clip.replace(/\.[^.]+$/, "");
-          subNames.push(nm);
           cp.addAction(clip.createSubClipAction(nm, T(c.start), T(c.end), true, { takeVideo: true, takeAudio: true }));
+          subNames.push(nm);
         } catch (e) { subErrs.push("sub[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
       });
     }, "CortesAI subclips");
@@ -500,7 +500,17 @@ async function buildTimeline() {
     stage = "openSequence";
     try { await project.openSequence(seq); } catch (e) {}
 
+    // Contar cuántos clips quedaron REALMENTE en el timeline (diagnóstico)
+    let placed = "?";
+    try {
+      const vt = await seq.getVideoTrack(0);
+      let tis = null;
+      try { tis = await vt.getTrackItems(1, false); } catch (e) { tis = await vt.getTrackItems(); }
+      placed = (tis && tis.length != null) ? String(tis.length) : "?";
+    } catch (e) { placed = "err:" + ((e && e.message) ? e.message : String(e)); }
+
     const resumen = "Secuencia \"" + seqName + "\" · subclips: " + subItems.length + "/" + lastMontage.cuts.length +
+          " · enTimeline: " + placed +
           (missingSub ? (" · " + missingSub + " no hallados") : "") + (subErrs.length ? (" · errSub: " + subErrs[0]) : "");
     setSt("✅ " + resumen);
 
