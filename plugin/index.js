@@ -390,7 +390,7 @@ async function buildTimeline() {
       byName = {}; sampleNames = [];
       for (const it of all) {
         let nm = null;
-        try { nm = await it.getName(); } catch (e) {}
+        try { nm = it.name; } catch (e) {}        // ProjectItem usa la PROPIEDAD .name (no getName())
         if (!nm) continue;
         sampleNames.push(nm);
         for (const k of nameKeys(nm)) { if (!byName[k]) byName[k] = it; }
