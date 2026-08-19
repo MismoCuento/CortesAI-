@@ -1,195 +1,298 @@
 /*
  * CortesAI · Panel UXP para Premiere Pro
- * Fase 1 — Interfaz y flujo (el motor de análisis llega en la Fase 2).
+ * Fase 2 — Motor real (transcripción + análisis con Groq).
  *
- * Este archivo solo controla la interfaz: elegir carpeta, leer ajustes,
- * validar y mostrar el progreso. Aún NO hace cortes reales (eso es Fase 3).
+ * Modo API (Groq): lee un video, lo transcribe con Whisper y calcula los
+ * cortes con un LLM. Muestra los cortes REALES (aún no los inserta en el
+ * timeline — eso es la Fase 3).
+ * Modo Local: por ahora sigue simulado (se implementa en una fase posterior).
  */
 
 // --- Acceso al sistema de archivos de UXP (con protección si no está) ---
-let fs = null;
-try { fs = require("uxp").storage.localFileSystem; } catch (e) { /* fuera de Premiere */ }
+let fs = null, formats = null;
+try {
+  const uxp = require("uxp");
+  fs = uxp.storage.localFileSystem;
+  formats = uxp.storage.formats;
+} catch (e) { /* fuera de Premiere */ }
 
-// --- Extensiones de video reconocidas ---
+const GROQ_BASE = "https://api.groq.com/openai/v1";
+const MODEL_STT = "whisper-large-v3-turbo";
+const MODEL_LLM = "openai/gpt-oss-20b";
+const MAX_BYTES = 24 * 1024 * 1024; // límite práctico de la API para el prototipo
 const VIDEO_EXT = ["mp4", "mov", "m4v", "avi", "mkv", "mxf", "mts", "wmv", "webm"];
+const MIME = { mp4:"video/mp4", mov:"video/quicktime", m4v:"video/x-m4v", webm:"video/webm",
+               avi:"video/x-msvideo", mkv:"video/x-matroska", mpeg:"video/mpeg", wav:"audio/wav", m4a:"audio/mp4" };
 
-// --- Perfiles (respaldo embebido; se intenta cargar desde /profiles) ---
+// Perfiles de respaldo (si no se puede leer la carpeta /profiles)
 const FALLBACK_PROFILES = [
-  { id: "reel",       label: "Reel / Social",        desc: "Cortes rápidos, engancha en los primeros segundos." },
-  { id: "deporte",    label: "Deportivo",            desc: "Detecta acción y picos de audio (jugadas, goles)." },
-  { id: "educativo",  label: "Educativo / Tutorial", desc: "Explicaciones claras y pasos ordenados." },
-  { id: "politico",   label: "Político",             desc: "Respeta frases completas y declaraciones clave." },
-  { id: "anuncios",   label: "Anuncios / Publicidad",desc: "Mensaje directo, marca visible y CTA potente." },
-  { id: "ecommerce",  label: "Ecommerce / Producto", desc: "Producto, beneficios y llamado a la acción." },
-  { id: "entrevista", label: "Entrevista / Podcast", desc: "Mantiene el hilo de la conversación." }
+  { id:"reel", label:"Reel / Social", desc:"Cortes rápidos, engancha en los primeros segundos.", respectSentences:false, structure:"hook-gancho-cuerpo-cta", scoringPrompt:"Prioriza momentos con gancho, emoción o sorpresa; penaliza intros lentas." },
+  { id:"deporte", label:"Deportivo", desc:"Detecta acción y picos de audio.", respectSentences:false, structure:"hook-cuerpo", scoringPrompt:"Prioriza energía y momentos de acción o narración intensa." },
+  { id:"educativo", label:"Educativo / Tutorial", desc:"Explicaciones claras y pasos ordenados.", respectSentences:true, structure:"hook-cuerpo-cta", scoringPrompt:"Prioriza explicaciones claras, pasos y ejemplos; mantén el orden lógico." },
+  { id:"politico", label:"Político", desc:"Respeta frases completas y declaraciones clave.", respectSentences:true, structure:"hook-cuerpo", scoringPrompt:"Prioriza declaraciones claras, cifras y respuestas directas; nunca cortes una frase a la mitad." },
+  { id:"anuncios", label:"Anuncios / Publicidad", desc:"Mensaje directo, marca visible y CTA potente.", respectSentences:false, structure:"hook-gancho-cuerpo-cta", scoringPrompt:"Prioriza un gancho fuerte al inicio, la propuesta de valor y un cierre con llamado a la acción." },
+  { id:"ecommerce", label:"Ecommerce / Producto", desc:"Producto, beneficios y CTA.", respectSentences:false, structure:"hook-gancho-cuerpo-cta", scoringPrompt:"Prioriza claridad del producto, beneficios concretos y el llamado a la acción final." },
+  { id:"entrevista", label:"Entrevista / Podcast", desc:"Mantiene el hilo de la conversación.", respectSentences:true, structure:"hook-cuerpo", scoringPrompt:"Prioriza respuestas con contenido, historias y opiniones claras; mantén el hilo." }
 ];
 
 let PROFILES = FALLBACK_PROFILES;
-let selectedFolder = null; // token de carpeta de UXP
+let selectedFolder = null;
+let videoEntries = [];
+let cancelRequested = false;
 
-// ---------- Utilidades de UI ----------
+// ---------- Utilidades ----------
 const $ = (id) => document.getElementById(id);
 function showView(name) {
-  ["config", "progress", "done"].forEach(v => $("view-" + v).classList.add("hidden"));
-  $("view-" + name).classList.remove("hidden");
+  ["config","progress","done"].forEach(v => $("view-"+v).classList.add("hidden"));
+  $("view-"+name).classList.remove("hidden");
 }
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function fmt(t){ t=Math.max(0,Math.round(t||0)); const m=Math.floor(t/60), s=t%60; return m+":"+String(s).padStart(2,"0"); }
+function extOf(name){ return name.split(".").pop().toLowerCase(); }
 
-// ---------- Cargar perfiles desde la carpeta del plugin ----------
+// ---------- Perfiles ----------
 async function loadProfiles() {
   try {
-    if (!fs) throw new Error("sin fs");
-    const pluginFolder = await fs.getPluginFolder();
-    const profilesFolder = await pluginFolder.getEntry("profiles");
-    const entries = await profilesFolder.getEntries();
+    if (!fs) throw new Error("no fs");
+    const pf = await fs.getPluginFolder();
+    const pdir = await pf.getEntry("profiles");
+    const entries = await pdir.getEntries();
     const loaded = [];
-    for (const entry of entries) {
-      if (entry.isFile && entry.name.endsWith(".json")) {
-        const text = await entry.read();
-        const p = JSON.parse(text);
-        loaded.push({ id: p.id, label: p.label, desc: p.desc });
+    for (const e of entries) {
+      if (e.isFile && e.name.endsWith(".json")) {
+        try { loaded.push(JSON.parse(await e.read())); } catch(_){}
       }
     }
     if (loaded.length) PROFILES = loaded;
-  } catch (e) {
-    // Si falla, usamos los perfiles embebidos.
-    PROFILES = FALLBACK_PROFILES;
-  }
-  const sel = $("videoType");
-  sel.innerHTML = "";
-  PROFILES.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = p.label;
-    sel.appendChild(opt);
-  });
+  } catch(e){ PROFILES = FALLBACK_PROFILES; }
+  const sel = $("videoType"); sel.innerHTML = "";
+  PROFILES.forEach(p => { const o=document.createElement("option"); o.value=p.id; o.textContent=p.label; sel.appendChild(o); });
   updateTypeDesc();
 }
+function currentProfile(){ return PROFILES.find(p=>p.id===$("videoType").value) || PROFILES[0]; }
+function updateTypeDesc(){ const p=currentProfile(); $("typeDesc").textContent = p ? (p.desc||"") : ""; }
 
-function updateTypeDesc() {
-  const p = PROFILES.find(x => x.id === $("videoType").value);
-  $("typeDesc").textContent = p ? p.desc : "";
-}
-
-// ---------- Elegir carpeta y contar videos ----------
+// ---------- Carpeta ----------
 async function pickFolder() {
-  if (!fs) { showError("El selector de carpetas solo funciona dentro de Premiere."); return; }
+  if (!fs) { showConfigError("El selector de carpetas solo funciona dentro de Premiere."); return; }
   try {
     const folder = await fs.getFolder();
-    if (!folder) return; // el usuario canceló
+    if (!folder) return;
     selectedFolder = folder;
     $("folderPath").value = folder.nativePath || folder.name;
     const entries = await folder.getEntries();
-    const videos = entries.filter(e => {
-      if (!e.isFile) return false;
-      const ext = e.name.split(".").pop().toLowerCase();
-      return VIDEO_EXT.includes(ext);
-    });
-    $("folderInfo").textContent = videos.length
-      ? `✓ ${videos.length} video(s) encontrados`
-      : "⚠️ No se encontraron videos en esta carpeta";
-    hideError();
-  } catch (e) {
-    showError("No se pudo abrir la carpeta: " + e.message);
-  }
+    videoEntries = entries.filter(e => e.isFile && VIDEO_EXT.includes(extOf(e.name)));
+    $("folderInfo").textContent = videoEntries.length ? ("✓ "+videoEntries.length+" video(s) encontrados") : "⚠️ No se encontraron videos en esta carpeta";
+    hideConfigError();
+  } catch(e){ showConfigError("No se pudo abrir la carpeta: "+e.message); }
 }
 
-// ---------- Recopilar ajustes ----------
+// ---------- Ajustes ----------
 function gatherSettings() {
   let duration = $("duration").value;
-  if (duration === "custom") duration = $("durationCustom").value.trim() || "auto";
+  if (duration === "custom") duration = ($("durationCustom").value||"").trim() || "auto";
   return {
-    folder: selectedFolder ? ($("folderPath").value) : null,
     videoType: $("videoType").value,
     duration,
     format: $("format").value,
     language: $("language").value,
     transcription: document.querySelector('input[name="transcribe"]:checked').value,
-    review: $("optReview").checked,
-    subtitles: $("optSubs").checked,
-    reframe: $("optReframe").checked
+    apiKey: ($("apiKey").value||"").trim()
   };
 }
 
-// ---------- Iniciar (Fase 1: simulación del flujo) ----------
-const STEPS = [
-  "Leyendo videos de la carpeta",
-  "Extrayendo audio (FFmpeg)",
-  "Transcribiendo",
-  "Analizando importancia (IA)",
-  "Analizando imagen (visión)",
-  "Calculando cortes",
-  "Construyendo la línea de tiempo"
-];
-let cancelRequested = false;
-
+// ---------- INICIAR ----------
 async function start() {
-  hideError();
+  hideConfigError();
   const s = gatherSettings();
-  if (!selectedFolder) { showError("Primero elige una carpeta de videos."); return; }
+  if (!selectedFolder || !videoEntries.length) { showConfigError("Primero elige una carpeta con videos."); return; }
+  if (s.transcription === "api" && !s.apiKey) { showConfigError("Pega tu API key de Groq (o cambia a modo Local)."); return; }
+  if (s.transcription === "api") { localStorage.setItem("groqKey", s.apiKey); return realProcess(s); }
+  return simulate(s); // modo local: aún simulado
+}
 
-  showView("progress");
+// ---------- Motor real (API / Groq) ----------
+const STEPS_API = ["Leyendo el video", "Transcribiendo con Groq (Whisper)", "Analizando con IA (cortes)", "Listo"];
+
+async function realProcess(s) {
   cancelRequested = false;
-  const stepsEl = $("progressSteps");
-  stepsEl.innerHTML = "";
-  STEPS.forEach((t, i) => {
-    const li = document.createElement("li");
-    li.textContent = "○ " + t;
-    li.id = "step-" + i;
-    stepsEl.appendChild(li);
-  });
+  showView("progress");
+  buildSteps(STEPS_API);
+  hideProgressError();
 
-  for (let i = 0; i < STEPS.length; i++) {
-    if (cancelRequested) { showView("config"); return; }
-    const li = $("step-" + i);
-    li.className = "active";
-    li.textContent = "⟳ " + STEPS[i] + "…";
-    setProgress(Math.round((i / STEPS.length) * 100));
-    await wait(700); // Fase 1: simulado. Fase 2+ conecta el motor real.
-    li.className = "done";
-    li.textContent = "✓ " + STEPS[i];
+  try {
+    // --- Prototipo: procesamos el PRIMER video de la carpeta ---
+    const entry = videoEntries[0];
+    stepState(0, "active"); setProgress(5);
+    const ext = extOf(entry.name);
+
+    // Leer bytes
+    const buf = await entry.read({ format: formats.binary });
+    const size = buf.byteLength;
+    if (size > MAX_BYTES) {
+      throw new Error("El video \""+entry.name+"\" pesa "+(size/1048576).toFixed(1)+" MB y supera el límite de "+(MAX_BYTES/1048576)+" MB de la API. "+
+        "En el siguiente paso añadiremos extracción de audio con FFmpeg para archivos grandes. Prueba con un clip más corto por ahora.");
+    }
+    stepState(0, "done"); setProgress(20);
+
+    // --- Transcribir ---
+    if (cancelRequested) return showView("config");
+    stepState(1, "active");
+    const tr = await groqTranscribe(buf, entry.name, ext, s);
+    stepState(1, "done"); setProgress(60);
+
+    // --- Analizar ---
+    if (cancelRequested) return showView("config");
+    stepState(2, "active");
+    const plan = await groqAnalyze(tr, s);
+    stepState(2, "done"); setProgress(95);
+
+    stepState(3, "done"); setProgress(100);
+    await wait(200);
+    showResults(entry.name, tr, plan, s);
+  } catch (err) {
+    showProgressError((err && err.message) ? err.message : String(err));
   }
-  setProgress(100);
-  await wait(300);
-  showDone(s);
 }
 
-function setProgress(pct) {
-  $("progressFill").style.width = pct + "%";
-  $("progressPct").textContent = pct + "%";
+// Transcripción con Groq (multipart)
+async function groqTranscribe(arrayBuffer, name, ext, s) {
+  const blob = new Blob([arrayBuffer], { type: MIME[ext] || "application/octet-stream" });
+  const fd = new FormData();
+  fd.append("file", blob, name);
+  fd.append("model", MODEL_STT);
+  fd.append("response_format", "verbose_json");
+  if (s.language && s.language !== "auto") fd.append("language", s.language);
+  const res = await fetch(GROQ_BASE + "/audio/transcriptions", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + s.apiKey },
+    body: fd
+  });
+  if (!res.ok) throw new Error("Transcripción falló ("+res.status+"): " + await safeText(res));
+  const data = await res.json();
+  const segs = (data.segments || []).map(x => ({ start:x.start, end:x.end, text:(x.text||"").trim() }));
+  return { language: data.language, duration: data.duration, text: data.text, segments: segs };
 }
 
-function showDone(s) {
-  $("doneSummary").innerHTML =
-    `<b>Ajustes usados</b><br/>` +
-    `Tipo: <b>${labelOf(s.videoType)}</b><br/>` +
-    `Duración: <b>${s.duration}</b><br/>` +
-    `Formato: <b>${s.format}</b><br/>` +
-    `Idioma: <b>${s.language}</b> · Transcripción: <b>${s.transcription}</b><br/><br/>` +
-    `<i>Fase 1: la interfaz y el flujo funcionan. En la Fase 2 se conecta el motor ` +
-    `que hace los cortes reales en el timeline.</i>`;
+// Análisis con Groq (LLM → JSON de cortes)
+async function groqAnalyze(tr, s) {
+  const p = currentProfile();
+  const sys = [
+    "Eres un editor de video experto. Recibes la transcripción con marcas de tiempo de un video y debes elegir los MEJORES segmentos para un montaje.",
+    "Tipo de video: " + p.label + ".",
+    "Criterio (perfil): " + (p.scoringPrompt || "Prioriza los momentos más relevantes e interesantes."),
+    p.keep ? ("Prioriza: " + p.keep.join(", ") + ".") : "",
+    p.remove ? ("Elimina: " + p.remove.join(", ") + ".") : "",
+    (p.respectSentences ? "Respeta frases completas; no cortes a mitad de una idea." : "Puedes hacer cortes ágiles."),
+    "Duración objetivo del montaje final: " + (s.duration==="auto" ? "libre, solo lo mejor" : (s.duration + (String(s.duration).includes(":")?"":" segundos")) ) + ".",
+    p.structure ? ("Estructura deseada por roles: " + p.structure + " (usa role: hook, gancho, cuerpo o cta).") : "",
+    "Devuelve SOLO JSON válido con esta forma: { \"cuts\": [ { \"start\": number(segundos), \"end\": number(segundos), \"role\": \"hook|gancho|cuerpo|cta\", \"score\": number(0-1), \"reason\": \"breve\" } ], \"finalDuration\": number, \"notes\": \"breve\" }.",
+    "Los start/end deben caer dentro de los tiempos de la transcripción y en orden."
+  ].filter(Boolean).join("\n");
+
+  const user = "Transcripción (segmentos con tiempos en segundos):\n" +
+    tr.segments.map(x => "["+x.start.toFixed(1)+"-"+x.end.toFixed(1)+"] "+x.text).join("\n");
+
+  const res = await fetch(GROQ_BASE + "/chat/completions", {
+    method: "POST",
+    headers: { "Authorization":"Bearer "+s.apiKey, "Content-Type":"application/json" },
+    body: JSON.stringify({
+      model: MODEL_LLM,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [ { role:"system", content:sys }, { role:"user", content:user } ]
+    })
+  });
+  if (!res.ok) throw new Error("Análisis falló ("+res.status+"): " + await safeText(res));
+  const data = await res.json();
+  let out; try { out = JSON.parse(data.choices[0].message.content); } catch(e){ out = { cuts:[], notes:"(respuesta no-JSON)" }; }
+  out.cuts = (out.cuts||[]).filter(c => typeof c.start==="number" && typeof c.end==="number" && c.end>c.start);
+  return out;
+}
+
+async function safeText(res){ try { return await res.text(); } catch(e){ return ""; } }
+
+// ---------- Resultados ----------
+function showResults(name, tr, plan, s) {
+  const total = (plan.cuts||[]).reduce((a,c)=>a+(c.end-c.start),0);
+  let html = "<b>✅ Cortes calculados (reales)</b><br/>";
+  html += "Video: <b>"+name+"</b><br/>";
+  html += "Idioma detectado: <b>"+(tr.language||"?")+"</b> · Duración original: <b>"+fmt(tr.duration)+"</b><br/>";
+  html += "Cortes propuestos: <b>"+(plan.cuts||[]).length+"</b> · Duración del montaje: <b>"+fmt(total)+"</b><br/>";
+  if (plan.notes) html += "<br/><i>"+esc(plan.notes)+"</i>";
+  html += "<br/><br/><b>Lista de cortes:</b><br/>";
+  (plan.cuts||[]).forEach((c,i) => {
+    html += (i+1)+". <b>"+fmt(c.start)+" → "+fmt(c.end)+"</b> "+
+            (c.role?("["+c.role+"] "):"")+
+            (typeof c.score==="number"?("("+Math.round(c.score*100)+"%) "):"")+
+            "<br/><span style='color:#9a9a9a'>"+esc(c.reason||"")+"</span><br/>";
+  });
+  html += "<br/><i>Fase 2 lista: estos son cortes reales calculados por IA. La Fase 3 los insertará como secuencia en tu timeline.</i>";
+  $("doneSummary").innerHTML = html;
+  showView("done");
+}
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// ---------- Progreso (UI) ----------
+function buildSteps(list){
+  const el = $("progressSteps"); el.innerHTML = "";
+  list.forEach((t,i)=>{ const li=document.createElement("li"); li.id="step-"+i; li.textContent="○ "+t; el.appendChild(li); });
+}
+function stepState(i, state){
+  const li = $("step-"+i); if(!li) return;
+  const label = li.textContent.replace(/^[○⟳✓]\s*/,"").replace(/…$/,"");
+  if (state==="active"){ li.className="active"; li.textContent="⟳ "+label+"…"; }
+  else if (state==="done"){ li.className="done"; li.textContent="✓ "+label; }
+}
+function setProgress(pct){ $("progressFill").style.width=pct+"%"; $("progressPct").textContent=pct+"%"; }
+
+// ---------- Modo local (simulado por ahora) ----------
+async function simulate(s) {
+  cancelRequested = false;
+  showView("progress"); hideProgressError();
+  const steps = ["Leyendo videos","Extrayendo audio (FFmpeg)","Transcribiendo (local)","Analizando importancia","Calculando cortes","Construyendo timeline"];
+  buildSteps(steps);
+  for (let i=0;i<steps.length;i++){
+    if (cancelRequested) return showView("config");
+    stepState(i,"active"); setProgress(Math.round(i/steps.length*100));
+    await wait(600); stepState(i,"done");
+  }
+  setProgress(100); await wait(200);
+  $("doneSummary").innerHTML = "<b>Modo Local (aún simulado)</b><br/>El modo local (Whisper en tu equipo) se implementa en una fase posterior. Por ahora usa el modo <b>API (Groq)</b> para cortes reales.";
   showView("done");
 }
 
-function labelOf(id) { const p = PROFILES.find(x => x.id === id); return p ? p.label : id; }
-function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
-function showError(msg) { const el = $("configError"); el.textContent = msg; el.classList.remove("hidden"); }
-function hideError() { $("configError").classList.add("hidden"); }
+// ---------- Errores ----------
+function showConfigError(m){ const e=$("configError"); e.textContent=m; e.classList.remove("hidden"); }
+function hideConfigError(){ $("configError").classList.add("hidden"); }
+function showProgressError(m){
+  let e=$("progressError");
+  if(!e){ e=document.createElement("div"); e.id="progressError"; e.className="error-msg"; $("view-progress").appendChild(e); }
+  e.textContent = "Error: " + m; e.classList.remove("hidden");
+}
+function hideProgressError(){ const e=$("progressError"); if(e) e.classList.add("hidden"); }
 
-// ---------- Enlaces de eventos ----------
+// ---------- Eventos ----------
+function toggleApiKey(){
+  const isApi = document.querySelector('input[name="transcribe"]:checked').value === "api";
+  $("apiKeyRow").classList.toggle("hidden", !isApi);
+}
 function bind() {
   $("btnPickFolder").addEventListener("click", pickFolder);
   $("videoType").addEventListener("change", updateTypeDesc);
-  $("duration").addEventListener("change", () => {
-    $("durationCustom").classList.toggle("hidden", $("duration").value !== "custom");
-  });
+  $("duration").addEventListener("change", () => { $("durationCustom").classList.toggle("hidden", $("duration").value!=="custom"); });
+  document.querySelectorAll('input[name="transcribe"]').forEach(r => r.addEventListener("change", toggleApiKey));
   $("btnStart").addEventListener("click", start);
-  $("btnCancel").addEventListener("click", () => { cancelRequested = true; });
-  $("btnNew").addEventListener("click", () => showView("config"));
+  $("btnCancel").addEventListener("click", ()=>{ cancelRequested = true; });
+  $("btnNew").addEventListener("click", ()=> showView("config"));
 }
 
 // ---------- Arranque ----------
-(async function init() {
+(async function init(){
   bind();
   await loadProfiles();
+  const saved = localStorage.getItem("groqKey");
+  if (saved) $("apiKey").value = saved;
+  toggleApiKey();
   showView("config");
 })();

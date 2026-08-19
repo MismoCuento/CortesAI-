@@ -1,6 +1,13 @@
-# CortesAI · Instalación de la Fase 1 (panel en Premiere)
+# CortesAI · Instalación (Fase 2 — motor real con Groq)
 
-> Esta es la **Fase 1**: el panel con su interfaz. Aún **no hace cortes reales** (eso llega en la Fase 2). Sirve para que veas y pruebes la herramienta dentro de tu Premiere.
+> **Fase 2:** el panel ya hace **cortes reales** con IA (modo **API / Groq**): transcribe un video y calcula los cortes. Todavía **no** los inserta en el timeline (eso es la Fase 3): por ahora te muestra la **lista de cortes** calculada.
+
+## Novedades de la Fase 2
+
+- Modo **API (Groq)**: pega tu API key gratis de `console.groq.com` en el campo 🔑 del panel.
+- Al primer uso, Premiere pedirá **permiso de red** (para conectarse a `api.groq.com`) → acéptalo.
+- **Prototipo:** procesa el **primer video** de la carpeta (para validar rápido). Luego lo escalamos a todos.
+- Límite temporal: videos de hasta ~24 MB (los grandes se soportan cuando agreguemos FFmpeg).
 
 ## Antes de empezar necesitas
 - **Premiere Pro 26.3.2** (o 25+).

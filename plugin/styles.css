@@ -31,7 +31,7 @@ body {
 .row { display: flex; gap: 6px; }
 .row input { flex: 1; }
 
-input[type="text"], .select {
+input[type="text"], input[type="password"], .select {
   width: 100%;
   padding: 7px 9px;
   background: #1f1f1f;
@@ -40,7 +40,8 @@ input[type="text"], .select {
   color: #e8e8e8;
   font-size: 12px;
 }
-input[type="text"]:focus, .select:focus { outline: none; border-color: #2680eb; }
+input[type="text"]:focus, input[type="password"]:focus, .select:focus { outline: none; border-color: #2680eb; }
+#apiKeyRow { margin-top: 8px; }
 
 /* Radios / checkboxes */
 .radio-row { display: flex; gap: 16px; margin-top: 2px; }

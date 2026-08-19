@@ -63,8 +63,15 @@
       <!-- Transcripción -->
       <label class="field-label">🔤 Transcripción</label>
       <div class="radio-row">
-        <label class="radio"><input type="radio" name="transcribe" value="local" checked /> Local (gratis)</label>
-        <label class="radio"><input type="radio" name="transcribe" value="api" /> API</label>
+        <label class="radio"><input type="radio" name="transcribe" value="local" /> Local (gratis)</label>
+        <label class="radio"><input type="radio" name="transcribe" value="api" checked /> API (Groq)</label>
+      </div>
+
+      <!-- API key (solo modo API) -->
+      <div id="apiKeyRow">
+        <label class="field-label">🔑 API key de Groq</label>
+        <input id="apiKey" type="password" placeholder="gsk_..." />
+        <div class="hint">Se guarda solo en tu equipo (no se sube a ningún lado). Gratis en console.groq.com</div>
       </div>
 
       <!-- Avanzado -->
@@ -96,7 +103,7 @@
       <button id="btnNew" class="btn btn-primary">Nuevo proceso</button>
     </section>
 
-    <footer class="footer">v0.1.0 · Fase 1 (interfaz)</footer>
+    <footer class="footer">v0.2.0 · Fase 2 (motor Groq)</footer>
   </div>
 
   <script src="index.js"></script>
