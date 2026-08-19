@@ -98,7 +98,8 @@ function gatherSettings() {
     format: $("format").value,
     language: $("language").value,
     transcription: document.querySelector('input[name="transcribe"]:checked').value,
-    apiKey: ($("apiKey").value||"").trim()
+    apiKey: ($("apiKey").value||"").trim(),
+    maxVideos: parseInt($("maxVideos").value, 10)
   };
 }
 
@@ -157,10 +158,34 @@ async function processViaEngine(s) {
     if (!r.ok || data.error) throw new Error(data.error || ("Motor respondió " + r.status));
     stepState(1, "done"); stepState(2, "done"); stepState(3, "done"); setProgress(100);
     await wait(150);
-    showResults(data.video, { language: data.language, duration: data.duration }, { cuts: data.cuts, notes: data.notes }, s);
+    showMontage(data, s);
   } catch (err) {
     showProgressError((err && err.message) ? err.message : String(err));
   }
+}
+
+// Montaje combinado (varios videos)
+function showMontage(data, s) {
+  const m = data.montage || { cuts: [] };
+  const cuts = m.cuts || [];
+  let html = "<b>✅ Montaje calculado (real)</b><br/>";
+  html += "Videos procesados: <b>" + data.processed + "</b> de " + data.totalVideos +
+          (data.skipped && data.skipped.length ? (" · " + data.skipped.length + " saltado(s)") : "") + "<br/>";
+  html += "Cortes en el montaje: <b>" + cuts.length + "</b> · Duración total: <b>" + fmt(m.totalDuration) + "</b>" +
+          (m.target ? (" (objetivo " + fmt(m.target) + ")") : "") + "<br/><br/>";
+  html += "<b>Línea de tiempo propuesta:</b><br/>";
+  cuts.forEach((c, i) => {
+    html += (i + 1) + ". <b>" + esc(c.clip || "") + "</b> " + fmt(c.start) + "→" + fmt(c.end) + " " +
+            (c.role ? ("[" + c.role + "] ") : "") +
+            (typeof c.score === "number" ? ("(" + Math.round(c.score * 100) + "%)") : "") + "<br/>" +
+            "<span style='color:#9a9a9a'>" + esc(c.reason || "") + "</span><br/>";
+  });
+  if (data.skipped && data.skipped.length) {
+    html += "<br/><span style='color:#8f8f8f'>Saltados: " + data.skipped.map(x => esc(x.video)).join(", ") + "</span>";
+  }
+  html += "<br/><br/><i>La Fase 3 insertará este montaje como secuencia en tu timeline (en el orden mostrado).</i>";
+  $("doneSummary").innerHTML = html;
+  showView("done");
 }
 
 // Respaldo directo (sin motor): envía el video a Groq. Solo clips pequeños.

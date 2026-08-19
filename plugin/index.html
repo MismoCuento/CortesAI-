@@ -77,7 +77,16 @@
       <!-- Avanzado -->
       <details class="advanced">
         <summary>▸ Opciones avanzadas</summary>
-        <label class="checkbox"><input id="optReview" type="checkbox" checked /> Revisar cortes antes de construir</label>
+        <label class="field-label" style="margin-top:8px">🎞️ Videos a procesar</label>
+        <select id="maxVideos" class="select">
+          <option value="1">Solo 1 (prueba rápida)</option>
+          <option value="5">5 videos</option>
+          <option value="10" selected>10 videos</option>
+          <option value="25">25 videos</option>
+          <option value="0">Todos (puede tardar)</option>
+        </select>
+        <div class="hint">Combina los mejores momentos de estos videos en un solo montaje.</div>
+        <label class="checkbox" style="margin-top:10px"><input id="optReview" type="checkbox" checked /> Revisar cortes antes de construir</label>
         <label class="checkbox"><input id="optSubs" type="checkbox" /> Generar subtítulos automáticos</label>
         <label class="checkbox"><input id="optReframe" type="checkbox" checked /> Reencuadre automático al formato</label>
       </details>
@@ -103,7 +112,7 @@
       <button id="btnNew" class="btn btn-primary">Nuevo proceso</button>
     </section>
 
-    <footer class="footer">v0.3.0 · Fase 2 (motor local + Groq)</footer>
+    <footer class="footer">v0.4.0 · Fase 2 (multi-video)</footer>
   </div>
 
   <script src="index.js"></script>

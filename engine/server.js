@@ -69,15 +69,15 @@ async function analyze(tr, profile, settings, apiKey) {
     ? "libre, solo lo mejor"
     : (settings.duration + (String(settings.duration).includes(":") ? "" : " segundos"));
   const sys = [
-    "Eres un editor de video experto. Recibes la transcripción con marcas de tiempo de un video y eliges los MEJORES segmentos para un montaje.",
+    "Eres un editor de video experto. Recibes la transcripción con marcas de tiempo de UN video y eliges sus MEJORES momentos (segmentos que valga la pena conservar).",
     "Tipo de video: " + (p.label || settings.videoType) + ".",
     "Criterio: " + (p.scoringPrompt || "Prioriza los momentos más relevantes e interesantes."),
     p.keep ? ("Prioriza: " + p.keep.join(", ") + ".") : "",
     p.remove ? ("Elimina: " + p.remove.join(", ") + ".") : "",
     (p.respectSentences ? "Respeta frases completas; no cortes a mitad de una idea." : "Puedes hacer cortes ágiles."),
-    "Duración objetivo del montaje: " + dur + ".",
-    p.structure ? ("Estructura por roles: " + p.structure + " (role: hook, gancho, cuerpo o cta).") : "",
-    'Devuelve SOLO JSON: { "cuts": [ { "start": number_segundos, "end": number_segundos, "role": "hook|gancho|cuerpo|cta", "score": number_0a1, "reason": "breve" } ], "finalDuration": number, "notes": "breve" }.',
+    p.structure ? ("Roles posibles: hook, gancho, cuerpo, cta (según " + p.structure + ").") : "",
+    "Devuelve VARIOS segmentos candidatos de este video, cada uno coherente, ordenados por score. No intentes llenar una duración fija: solo marca lo bueno (varios clips distintos se combinarán después).",
+    'Devuelve SOLO JSON: { "cuts": [ { "start": number_segundos, "end": number_segundos, "role": "hook|gancho|cuerpo|cta", "score": number_0a1, "reason": "breve" } ], "notes": "breve" }.',
     "Los start/end deben caer dentro de la transcripción y en orden."
   ].filter(Boolean).join("\n");
   const user = "Transcripción (segmentos, tiempos en segundos):\n" +
@@ -103,30 +103,59 @@ function isRealVideo(name) {
   if (name.startsWith(".")) return false;          // ignora ocultos y AppleDouble "._"
   return VIDEO_EXT.includes(name.split(".").pop().toLowerCase());
 }
+// Duración objetivo en segundos (soporta "60", "1:30", "25-35", "auto")
+function targetSeconds(duration) {
+  if (!duration || duration === "auto") return Infinity;
+  let d = String(duration).trim();
+  if (d.includes("-")) d = d.split("-").pop().trim();           // rango: usa el máximo
+  if (d.includes(":")) { const [m, s] = d.split(":"); return (parseInt(m)||0)*60 + (parseInt(s)||0); }
+  const n = parseFloat(d); return isNaN(n) ? Infinity : n;
+}
+
+// Ensambla los mejores momentos de TODOS los clips en un solo montaje
+function assembleMontage(perClip, settings) {
+  const target = targetSeconds(settings.duration);
+  const all = [];
+  perClip.forEach(r => (r.cuts || []).forEach(c => all.push(Object.assign({}, c, { clip: r.video }))));
+  all.sort((a, b) => (b.score || 0) - (a.score || 0));         // mejor score primero
+  const chosen = []; let total = 0;
+  for (const c of all) {
+    const len = Math.max(0, (c.end || 0) - (c.start || 0));
+    if (chosen.length === 0 || total + len <= target) { chosen.push(c); total += len; }
+    if (total >= target) break;
+  }
+  const order = { hook: 0, gancho: 1, cuerpo: 2, cta: 3 };     // ordena por estructura narrativa
+  chosen.sort((a, b) => (order[a.role] != null ? order[a.role] : 2) - (order[b.role] != null ? order[b.role] : 2));
+  return { cuts: chosen, totalDuration: total, target: (target === Infinity ? null : target) };
+}
+
 async function processFolder(folderPath, settings, profile) {
   const files = fs.readdirSync(folderPath).filter(isRealVideo).sort();
   if (!files.length) throw new Error("No se encontraron videos válidos en la carpeta.");
-  const limit = settings.limit || 1;               // prototipo: 1 video (escalable)
-  const results = [], skipped = [];
+  const max = (settings.maxVideos && settings.maxVideos > 0) ? settings.maxVideos : files.length;
+  const perClip = [], skipped = [];
   for (const name of files) {
-    if (results.length >= limit) break;
+    if (perClip.length >= max) break;
     const input = path.join(folderPath, name);
-    const audio = path.join(os.tmpdir(), "cortesai_" + Date.now() + ".mp3");
+    const audio = path.join(os.tmpdir(), "cortesai_" + Date.now() + "_" + Math.floor(perClip.length) + ".mp3");
     try {
       await extractAudio(input, audio);
       const tr = await transcribe(audio, settings.apiKey, settings.language);
       const plan = await analyze(tr, profile, settings, settings.apiKey);
-      results.push({ video: name, language: tr.language, duration: tr.duration, cuts: plan.cuts, notes: plan.notes });
+      perClip.push({ video: name, language: tr.language, duration: tr.duration, cuts: plan.cuts, notes: plan.notes });
+      console.log("  ✓ " + name + " (" + (plan.cuts || []).length + " momentos)");
     } catch (e) {
-      skipped.push({ video: name, error: e.message });   // salta el que falle y prueba el siguiente
+      skipped.push({ video: name, error: e.message });
+      console.log("  ✗ " + name + " (saltado: " + e.message.slice(0, 80) + ")");
     } finally {
       try { fs.unlinkSync(audio); } catch (e2) {}
     }
   }
-  if (!results.length) {
+  if (!perClip.length) {
     throw new Error("No se pudo procesar ningún video. Primer error: " + (skipped[0] ? skipped[0].error : "desconocido"));
   }
-  return { count: files.length, processed: results.length, skipped, results };
+  const montage = assembleMontage(perClip, settings);
+  return { totalVideos: files.length, processed: perClip.length, skipped, perClip, montage };
 }
 
 // ---- Servidor HTTP local ----
@@ -141,7 +170,7 @@ const server = http.createServer((req, res) => {
 
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.3.0" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.4.0" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
@@ -153,11 +182,14 @@ const server = http.createServer((req, res) => {
         if (!folderPath) throw new Error("Falta la carpeta.");
         if (!settings || !settings.apiKey) throw new Error("Falta la API key de Groq.");
         const out = await processFolder(folderPath, settings, profile);
-        // Compatibilidad: exponer el primer resultado en la raíz
-        const first = out.results[0] || {};
-        res.end(JSON.stringify({ ok: true, count: out.count, processed: out.processed,
-          video: first.video, language: first.language, duration: first.duration,
-          cuts: first.cuts || [], notes: first.notes || "", results: out.results }));
+        res.end(JSON.stringify({
+          ok: true,
+          totalVideos: out.totalVideos,
+          processed: out.processed,
+          skipped: out.skipped,
+          montage: out.montage,          // { cuts:[{clip,start,end,role,score,reason}], totalDuration, target }
+          perClip: out.perClip
+        }));
       } catch (e) {
         res.statusCode = 500;
         res.end(JSON.stringify({ error: e.message }));
