@@ -2,7 +2,7 @@
   "manifestVersion": 6,
   "id": "com.cortesai.panel",
   "name": "CortesAI",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "main": "index.html",
   "host": [
     {
