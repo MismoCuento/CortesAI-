@@ -152,9 +152,11 @@ function assembleMontage(perClip, settings) {
     return true;
   };
 
+  const MIN_SCORE = 0.4;   // compuerta de calidad: descarta segmentos mediocres
   tryAdd(bestHook, "hook", ctaLen);
   for (const c of all) {
     if (c === bestHook || c === bestCta) continue;
+    if ((c.score || 0) < MIN_SCORE) continue;   // "¿sirve o no?": solo lo bueno
     tryAdd(c, "cuerpo", ctaLen);
   }
   tryAdd(bestCta, "cta", 0);
@@ -288,7 +290,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.4" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.5" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";

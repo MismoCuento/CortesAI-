@@ -399,12 +399,24 @@ function nameKeys(name) {
   return [n, n.toLowerCase(), noExt, noExt.toLowerCase()];
 }
 
-// Re-obtiene un ProjectItem FRESCO por nombre (evita 'script object is no longer valid')
+// Re-obtiene un ProjectItem FRESCO por nombre SIN recursión profunda
+// (la recursión invalida referencias -> 'script object is no longer valid').
+// Devuelve el item en el MISMO getItems donde se encuentra, sin llamadas posteriores.
+function normName(s) { return String(s || "").toLowerCase().replace(/\.[^.]+$/, ""); }
 async function freshResolve(project, clipName) {
-  const all = await collectAllItems(await project.getRootItem(), []);
-  const map = {};
-  for (const it of all) { let nm = null; try { nm = it.name; } catch (e) {} if (nm) for (const k of nameKeys(nm)) if (!map[k]) map[k] = it; }
-  for (const k of nameKeys(clipName)) if (map[k]) return map[k];
+  const target = normName(clipName);
+  const root = await project.getRootItem();
+  const roots = await root.getItems();
+  // 1) buscar en la raíz (sin más llamadas si se encuentra)
+  for (const it of roots) { let nm = null; try { nm = it.name; } catch (e) {} if (nm && normName(nm) === target) return it; }
+  // 2) buscar un nivel dentro de cada carpeta; devolver en cuanto se encuentra
+  for (const it of roots) {
+    let kids = null;
+    try { kids = await it.getItems(); } catch (e) { kids = null; }
+    if (kids && kids.length) {
+      for (const k of kids) { let nm = null; try { nm = k.name; } catch (e) {} if (nm && normName(nm) === target) return k; }
+    }
+  }
   return null;
 }
 
@@ -431,11 +443,18 @@ async function buildTimeline() {
     lastMontage.cuts.forEach(c => { if (uniqueNames.indexOf(c.clip) < 0) uniqueNames.push(c.clip); });
     const paths = uniqueNames.map(n => folder + sep + n);
 
-    // 1) Importar los clips únicos
-    setSt("1/4 Importando " + uniqueNames.length + " clips…");
+    // 1) Importar solo los clips que NO estén ya en el proyecto (evita duplicados)
+    setSt("1/4 Importando clips…");
     stage = "importFiles";
     const root = await project.getRootItem();
-    const importedOk = await project.importFiles(paths, true, root, false);
+    let existing = {};
+    try {
+      const rootItems = await root.getItems();
+      for (const it of rootItems) { let nm = null; try { nm = it.name; } catch (e) {} if (nm) existing[normName(nm)] = true; }
+    } catch (e) {}
+    const toImport = uniqueNames.filter(n => !existing[normName(n)]).map(n => folder + sep + n);
+    let importedOk = true;
+    if (toImport.length) importedOk = await project.importFiles(toImport, true, root, false);
     // Sonda directa: ¿getItems del root funciona?
     let probeCount = -1, probeErr = "";
     try { const probe = await (await project.getRootItem()).getItems(); probeCount = probe ? probe.length : -2; }
