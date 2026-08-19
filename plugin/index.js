@@ -505,10 +505,8 @@ async function buildTimeline() {
     const media = cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
     const seq = await project.createSequenceFromMedia(seqName, media);
     if (!seq) throw new Error("createSequenceFromMedia devolvió vacío (media=" + media.length + ")");
-    stage = "openSequence";
-    try { await project.openSequence(seq); } catch (e) {}
 
-    // 4) Recortar cada clip YA colocado en el timeline a su corte (4-6s) y cerrar huecos
+    // 4) Recortar TODOS los clips del timeline en UNA sola transacción (sin pausas)
     setSt("4/4 Recortando en el timeline…");
     stage = "trimTrackItems";
     let trimmed = 0, trimErrs = [];
@@ -516,26 +514,24 @@ async function buildTimeline() {
     let titems = null;
     try { titems = await vt.getTrackItems(1, false); } catch (e) { try { titems = await vt.getTrackItems(); } catch (e2) { titems = null; } }
     if (titems && titems.length) {
-      let playhead = 0;
       const n = Math.min(titems.length, cuts.length);
-      for (let i = 0; i < n; i++) {
-        const ti = titems[i], c = cuts[i];
-        const ph = playhead;
-        try {
-          project.executeTransaction((cp) => {
+      try {
+        project.executeTransaction((cp) => {
+          let playhead = 0;
+          for (let i = 0; i < n; i++) {
+            const ti = titems[i], c = cuts[i];
             cp.addAction(ti.createSetInPointAction(T(c.start)));
             cp.addAction(ti.createSetOutPointAction(T(c.end)));
-          }, "CortesAI recorte " + i);
-          project.executeTransaction((cp) => {
-            cp.addAction(ti.createSetStartAction(T(ph)));
-          }, "CortesAI posicion " + i);
-          trimmed++;
-        } catch (e) { trimErrs.push("trim[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
-        playhead += Math.max(0.1, (c.end - c.start));
-        setSt("4/4 Recortando… " + trimmed + "/" + n);
-        await wait(10);
-      }
+            cp.addAction(ti.createSetStartAction(T(playhead)));
+            playhead += Math.max(0.1, (c.end - c.start));
+            trimmed++;
+          }
+        }, "CortesAI recorte total");
+      } catch (e) { trimErrs.push("trim: " + ((e && e.message) ? e.message : String(e))); trimmed = 0; }
     } else { trimErrs.push("sin track items para recortar"); }
+
+    stage = "openSequence";
+    try { await project.openSequence(seq); } catch (e) {}
 
     const resumen = "Secuencia creada · " + media.length + " clips · recortados=" + trimmed +
           (trimErrs.length ? (" · err: " + trimErrs[0]) : " (OK)");
