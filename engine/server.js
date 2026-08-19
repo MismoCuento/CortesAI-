@@ -142,8 +142,17 @@ async function processFolder(folderPath, settings, profile) {
       await extractAudio(input, audio);
       const tr = await transcribe(audio, settings.apiKey, settings.language);
       const plan = await analyze(tr, profile, settings, settings.apiKey);
-      perClip.push({ video: name, language: tr.language, duration: tr.duration, cuts: plan.cuts, notes: plan.notes });
-      console.log("  ✓ " + name + " (" + (plan.cuts || []).length + " momentos)");
+      let cuts = plan.cuts || [];
+      const textLen = ((tr.text || "").trim()).length;
+      // Plan B: si no hay diálogo (o la IA no eligió nada), usa un fragmento visual del clip.
+      if (!cuts.length) {
+        const maxLen = (profile && profile.maxClip) ? profile.maxClip : 8;
+        const clipDur = tr.duration || maxLen;
+        const end = Math.min(clipDur, maxLen);
+        if (end > 0.3) cuts = [{ start: 0, end: end, role: "cuerpo", score: 0.3, reason: "clip sin diálogo: fragmento visual" }];
+      }
+      perClip.push({ video: name, language: tr.language, duration: tr.duration, cuts: cuts, notes: plan.notes });
+      console.log("  ✓ " + name + " (" + cuts.length + " momentos · audio " + Math.round(tr.duration || 0) + "s · texto " + textLen + " car.)");
     } catch (e) {
       skipped.push({ video: name, error: e.message });
       console.log("  ✗ " + name + " (saltado: " + e.message.slice(0, 80) + ")");
@@ -170,7 +179,7 @@ const server = http.createServer((req, res) => {
 
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.4.0" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.4.1" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
