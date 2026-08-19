@@ -256,9 +256,21 @@ const server = http.createServer((req, res) => {
   cors(res);
   if (req.method === "OPTIONS") { res.statusCode = 204; return res.end(); }
 
+  if (req.method === "POST" && req.url === "/log") {
+    let body = "";
+    req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
+    req.on("end", () => {
+      console.log("\n───────── DIAGNÓSTICO DEL PANEL ─────────");
+      console.log(body);
+      console.log("─────────────────────────────────────────\n");
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ ok: true }));
+    });
+    return;
+  }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.1" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.2" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";

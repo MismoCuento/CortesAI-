@@ -474,46 +474,53 @@ async function buildTimeline() {
     const editor = ppro.SequenceEditor.getEditor(seq);
     const T = (s) => ppro.TickTime.createWithSeconds(s);
     let playhead = 0, inserted = 0, failed = 0, firstErr = "", method = "";
+    const errs = [];
     stage = "place";
     for (const c of lastMontage.cuts) {
       const item = resolve(c.clip);
-      if (!item) { failed++; continue; }
+      if (!item) { failed++; errs.push("sin item: " + c.clip); continue; }
       const clip = ppro.ClipProjectItem.cast(item);
       const ph = playhead;
+      let ok = false;
+
+      // Método A: overwrite (recorte + colocar en una sola transacción)
       try {
-        // (a) fijar in/out del clip
-        project.executeTransaction((cp) => {
+        ok = project.executeTransaction((cp) => {
           cp.addAction(clip.createSetInPointAction(T(c.start)));
           cp.addAction(clip.createSetOutPointAction(T(c.end)));
-        }, "CortesAI in/out");
+          cp.addAction(editor.createOverwriteItemAction(item, T(ph), 0, 0));
+        }, "CortesAI overwrite");
+        if (ok !== false && !method) method = "overwrite";
+      } catch (e1) { errs.push("ow[" + c.clip + "]: " + ((e1 && e1.message) ? e1.message : String(e1))); }
 
-        // (b) colocar: intenta overwrite; si falla, intenta insert
-        let ok = false;
+      // Método B: insert (si overwrite no funcionó)
+      if (ok === false) {
         try {
           ok = project.executeTransaction((cp) => {
-            cp.addAction(editor.createOverwriteItemAction(item, T(ph), 0, 0));
-          }, "CortesAI overwrite");
-          if (ok !== false && !method) method = "overwrite";
-        } catch (e1) { if (!firstErr) firstErr = "overwrite: " + ((e1 && e1.message) ? e1.message : String(e1)); }
+            cp.addAction(clip.createSetInPointAction(T(c.start)));
+            cp.addAction(clip.createSetOutPointAction(T(c.end)));
+            cp.addAction(editor.createInsertProjectItemAction(item, T(ph), 0, 0, false));
+          }, "CortesAI insert");
+          if (ok !== false && !method) method = "insert";
+        } catch (e2) { errs.push("ins[" + c.clip + "]: " + ((e2 && e2.message) ? e2.message : String(e2))); }
+      }
 
-        if (ok === false) {
-          try {
-            ok = project.executeTransaction((cp) => {
-              cp.addAction(editor.createInsertProjectItemAction(item, T(ph), 0, 0, false));
-            }, "CortesAI insert");
-            if (ok !== false && !method) method = "insert";
-          } catch (e2) { if (!firstErr) firstErr = "insert: " + ((e2 && e2.message) ? e2.message : String(e2)); }
-        }
-
-        if (ok !== false) inserted++; else failed++;
-      } catch (e) { failed++; if (!firstErr) firstErr = "in/out: " + ((e && e.message) ? e.message : String(e)); }
+      if (ok !== false) inserted++; else failed++;
       playhead += Math.max(0.1, (c.end - c.start));
       setSt("4/4 Colocando… " + inserted + "/" + lastMontage.cuts.length);
       await wait(15);
     }
+    firstErr = errs[0] || "";
 
-    setSt("Secuencia \"" + seqName + "\" · " + inserted + " colocados · " + failed + " fallaron" +
-          (method ? (" · método=" + method) : "") + (firstErr ? (" · err: " + firstErr) : "") + " · " + fmt(playhead));
+    const resumen = "Secuencia \"" + seqName + "\" · " + inserted + " colocados · " + failed + " fallaron" +
+          (method ? (" · método=" + method) : "") + " · " + fmt(playhead);
+    setSt(resumen + (firstErr ? (" · err: " + firstErr) : ""));
+
+    // Enviar diagnóstico completo a la ventana del motor (fácil de ver/capturar)
+    try {
+      await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" },
+        body: "CONSTRUIR TIMELINE\n" + resumen + "\nPrimeros errores:\n" + errs.slice(0, 5).join("\n") });
+    } catch (e) {}
   } catch (err) {
     setSt("Error en [" + stage + "]: " + ((err && err.message) ? err.message : String(err)));
   } finally {
