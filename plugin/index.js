@@ -458,49 +458,66 @@ async function buildTimeline() {
         (sampleNames.length ? (" · ej: " + sampleNames.slice(0, 6).join(", ")) : ""));
     }
 
-    // ============ SONDA DE DIAGNÓSTICO (v0.7.7) ============
     const T = (s2) => ppro.TickTime.createWithSeconds(s2);
-    const R = [];
-    const countItems = async (seq) => {
-      try {
-        const vt = await seq.getVideoTrack(0);
-        let tis = null;
-        try { tis = await vt.getTrackItems(1, false); } catch (e) { tis = await vt.getTrackItems(); }
-        return (tis && tis.length != null) ? String(tis.length) : "?";
-      } catch (e) { return "cnt-err:" + ((e && e.message) ? e.message : String(e)); }
-    };
+    const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
 
-    const firstMaster = ppro.ClipProjectItem.cast(resolve(uniqueNames[0]));
-    R.push("métodos clip: subClip=" + (typeof firstMaster.createSubClipAction) +
-           " setIn=" + (typeof firstMaster.createSetInPointAction));
+    // 3) Crear un subclip RECORTADO por cada corte (createSubClipAction)
+    setSt("3/5 Recortando " + lastMontage.cuts.length + " cortes…");
+    stage = "createSubClips";
+    const subNames = [], subErrs = [];
+    project.executeTransaction((cp) => {
+      lastMontage.cuts.forEach((c, i) => {
+        const item = resolve(c.clip);
+        if (!item) { subErrs.push("sin item: " + c.clip); return; }
+        try {
+          const clip = ppro.ClipProjectItem.cast(item);
+          const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + c.clip.replace(/\.[^.]+$/, "");
+          cp.addAction(clip.createSubClipAction(nm, T(c.start), T(c.end), true, { takeVideo: true, takeAudio: true }));
+          subNames.push(nm);
+        } catch (e) { subErrs.push("sub[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
+      });
+    }, "CortesAI subclips");
 
-    // Test A: secuencia con 1 master
-    stage = "probeA";
-    let seqA = null;
-    try { seqA = await project.createSequenceFromMedia("CAI probe A", [firstMaster]); } catch (e) { R.push("A-err:" + (e.message || e)); }
-    R.push("A creada=" + (!!seqA) + (seqA ? (" enTimeline=" + await countItems(seqA)) : ""));
-    if (seqA) {
-      try {
-        const ed = ppro.SequenceEditor.getEditor(seqA);
-        R.push("editor: overwrite=" + (typeof ed.createOverwriteItemAction) +
-               " insert=" + (typeof ed.createInsertProjectItemAction) +
-               " append=" + (typeof ed.createAppendItemAction));
-      } catch (e) { R.push("editor-err:" + (e.message || e)); }
+    // 4) Localizar los subclips creados (recursivo + reintentos)
+    setSt("4/5 Preparando cortes…");
+    stage = "findSubClips";
+    let subByName = {};
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const all = await collectAllItems(await project.getRootItem(), []);
+      subByName = {};
+      for (const it of all) { let nm = null; try { nm = it.name; } catch (e) {} if (nm) subByName[nm] = it; }
+      if (subNames.length && subNames.every(n => subByName[n])) break;
+      await wait(400);
     }
+    const subItems = subNames.map(n => subByName[n]).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
 
-    // Test B: secuencia con TODOS los master (full) en orden del montaje
-    stage = "probeB";
-    const mastersInOrder = lastMontage.cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
-    let seqB = null;
-    try { seqB = await project.createSequenceFromMedia("CAI probe B", mastersInOrder); } catch (e) { R.push("B-err:" + (e.message || e)); }
-    R.push("B creada=" + (!!seqB) + " masters=" + mastersInOrder.length + (seqB ? (" enTimeline=" + await countItems(seqB)) : ""));
-    if (seqB) { try { await project.openSequence(seqB); } catch (e) {} }
+    // 5) Armar la secuencia con los subclips recortados en orden.
+    //    Si por algún motivo no hay subclips, usa los clips completos como respaldo.
+    stage = "createSequenceFromMedia";
+    let media = subItems, trimmed = true;
+    if (!subItems.length) {
+      trimmed = false;
+      media = lastMontage.cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
+    }
+    setSt("5/5 Armando secuencia con " + media.length + " cortes…");
+    const seq = await project.createSequenceFromMedia(seqName, media);
+    if (!seq) throw new Error("createSequenceFromMedia devolvió vacío (media=" + media.length + ", subErr=" + (subErrs[0] || "-") + ")");
+    stage = "openSequence";
+    try { await project.openSequence(seq); } catch (e) {}
 
-    const resumen = "SONDA\n" + R.join("\n");
-    setSt(resumen);
-    try { await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" }, body: resumen }); } catch (e) {}
-    return;
-    // ============ FIN SONDA ============
+    let placed = "?";
+    try {
+      const vt = await seq.getVideoTrack(0);
+      let tis = null; try { tis = await vt.getTrackItems(1, false); } catch (e) { tis = await vt.getTrackItems(); }
+      placed = (tis && tis.length != null) ? String(tis.length) : "?";
+    } catch (e) {}
+
+    const resumen = "Secuencia creada · " + placed + " clips en el timeline" +
+          (trimmed ? " (recortados)" : " (completos, respaldo)") +
+          (subErrs.length ? (" · nota: " + subErrs[0]) : "");
+    setSt("✅ " + resumen);
+    try { await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" },
+      body: "CONSTRUIR\n" + resumen + (subErrs.length ? ("\n" + subErrs.slice(0, 5).join("\n")) : "") }); } catch (e) {}
   } catch (err) {
     setSt("Error en [" + stage + "]: " + ((err && err.message) ? err.message : String(err)));
   } finally {

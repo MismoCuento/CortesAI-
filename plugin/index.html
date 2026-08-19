@@ -76,22 +76,15 @@
         <div class="hint">Se guarda solo en tu equipo (no se sube a ningún lado). Gratis en console.groq.com</div>
       </div>
 
-      <!-- Avanzado -->
-      <details class="advanced">
-        <summary>▸ Opciones avanzadas</summary>
-        <label class="field-label" style="margin-top:8px">🎞️ Videos a procesar</label>
-        <select id="maxVideos" class="select">
-          <option value="1">Solo 1 (prueba rápida)</option>
-          <option value="5">5 videos</option>
-          <option value="10" selected>10 videos</option>
-          <option value="25">25 videos</option>
-          <option value="0">Todos (puede tardar)</option>
-        </select>
-        <div class="hint">Combina los mejores momentos de estos videos en un solo montaje.</div>
-        <label class="checkbox" style="margin-top:10px"><input id="optReview" type="checkbox" checked /> Revisar cortes antes de construir</label>
-        <label class="checkbox"><input id="optSubs" type="checkbox" /> Generar subtítulos automáticos</label>
-        <label class="checkbox"><input id="optReframe" type="checkbox" checked /> Reencuadre automático al formato</label>
-      </details>
+      <!-- Videos a procesar -->
+      <label class="field-label">🎞️ Videos a procesar</label>
+      <select id="maxVideos" class="select">
+        <option value="5">5 videos</option>
+        <option value="10" selected>10 videos</option>
+        <option value="25">25 videos</option>
+        <option value="0">Todos (puede tardar)</option>
+      </select>
+      <div class="hint">Combina los mejores momentos de estos videos en un solo montaje.</div>
 
       <button id="btnStart" class="btn btn-primary btn-start">▶  Iniciar</button>
       <div id="configError" class="error-msg hidden"></div>
@@ -116,7 +109,7 @@
       <button id="btnNew" class="btn btn-secondary" style="margin-top:10px">Nuevo proceso</button>
     </section>
 
-    <footer class="footer">v0.7.7 · Sonda</footer>
+    <footer class="footer">v0.7.8 · Timeline</footer>
   </div>
 
   <script src="index.js"></script>

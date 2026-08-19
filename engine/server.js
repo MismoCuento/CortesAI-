@@ -69,7 +69,9 @@ async function analyze(tr, profile, settings, apiKey) {
     ? "libre, solo lo mejor"
     : (settings.duration + (String(settings.duration).includes(":") ? "" : " segundos"));
   const sys = [
-    "Eres un editor de video experto. Recibes la transcripción con marcas de tiempo de UN video y eliges sus MEJORES momentos (segmentos que valga la pena conservar).",
+    "Eres un editor de video viral experto. Recibes la transcripción con marcas de tiempo de UN video y eliges sus MEJORES momentos para un montaje que ENGANCHE.",
+    "OBJETIVO: el resultado debe captar la atención al instante y mantenerla (contenido 'dopamínico'). Prioriza momentos con ENERGÍA, EMOCIÓN, SORPRESA, ACCIÓN, INTERACCIÓN entre personas, reacciones, o frases con gancho. Evita momentos planos, lentos, silencios o relleno.",
+    "Sé exigente: mejor pocos segmentos MUY buenos que muchos mediocres. Segmentos cortos y potentes (2-6s) funcionan mejor.",
     "Tipo de video: " + (p.label || settings.videoType) + ".",
     "Criterio: " + (p.scoringPrompt || "Prioriza los momentos más relevantes e interesantes."),
     p.keep ? ("Prioriza: " + p.keep.join(", ") + ".") : "",
@@ -270,7 +272,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.2" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.3" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
