@@ -1,0 +1,1938 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 26 /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R 44 0 R 46 0 R 48 0 R 50 0 R 52 0 R 54 0 R] >>
+endobj
+3 0 obj
+<< /Length 3353 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(# CorteIA - Documentación completa) Tj
+T* () Tj
+T* (_Extensión de edición automática para Adobe Premiere Pro 2026 \(UXP\)_) Tj
+T* () Tj
+T* (_Generado: 2026-08-19_) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# CorteIA - Extensión de edición automática para Premiere Pro) Tj
+T* () Tj
+T* (> Panel dentro de Premiere Pro que, a partir de una carpeta de videos y un **tipo de contenido**) Tj
+T* ( \(reel, política, deporte, ecommerce...\), analiza lo más importante, calcula los cortes y ) Tj
+T* (entrega una **secuencia ya editada** en tu línea de tiempo.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (##  Índice de la documentación) Tj
+T* () Tj
+T* (| Documento | De qué trata |) Tj
+T* (|-----------|--------------|) Tj
+T* (| [01 · Visión y alcance]\(./01-vision-y-alcance.md\) | Qué problema resuelve, qué hace y qué NO ) Tj
+T* (hace \(v1\) |) Tj
+T* (| [02 · Arquitectura técnica]\(./02-arquitectura-tecnica.md\) | UXP, backend, FFmpeg, ) Tj
+T* (transcripción, cómo se conecta todo |) Tj
+T* (| [03 · Perfiles de video]\(./03-perfiles-de-video.md\) | Reglas de corte por tipo de contenido ) Tj
+T* (\(el "cerebro"\) |) Tj
+T* (| [04 · Flujo de usuario]\(./04-flujo-de-usuario.md\) | Pantallas, botones y experiencia paso a ) Tj
+T* (paso |) Tj
+T* (| [05 · Transcripción y análisis IA]\(./05-transcripcion-y-analisis.md\) | Modo local gratis vs ) Tj
+T* (API, idiomas, cómo se decide lo importante |) Tj
+T* (| [06 · Instalación \(Mac y Windows\)]\(./06-instalacion.md\) | Requisitos y pasos para instalar el ) Tj
+T* (panel |) Tj
+T* (| [07 · Roadmap y fases]\(./07-roadmap.md\) | En qué orden se construye, hito por hito |) Tj
+T* (| [08 · Glosario]\(./08-glosario.md\) | Términos técnicos explicados en simple |) Tj
+T* (| [09 · Análisis visual \(frame a frame\)]\(./09-analisis-visual.md\) | El "ojo" de la herramienta: ) Tj
+T* (mejor gancho visual, cortes limpios |) Tj
+T* (| [10 · Estructura narrativa]\(./10-estructura-narrativa.md\) | Hook -> Gancho -> Cuerpo -> CTA |) Tj
+T* (| [11 · Referencias técnicas]\(./11-referencias-tecnicas.md\) | Hallazgos verificados de APIs UXP ) Tj
+T* (+ fuentes |) Tj
+T* (| [12 · Funciones plus]\(./12-funciones-plus.md\) | Valor agregado: subtítulos, reencuadre, multi-) Tj
+T* (formato... |) Tj
+T* (| [13 · Lenguajes y stack]\(./13-lenguajes-y-stack.md\) | Qué lenguajes se usan \(HTML/CSS/JS/TS, ) Tj
+T* (Node, Python\) |) Tj
+T* (| [14 · Guía VS Code paso a paso]\(./14-guia-vscode-paso-a-paso.md\) | Instalar todo y ejecutar, ) Tj
+T* (para no-programadores |) Tj
+T* (| [15 · Cómo trabajamos juntos]\(./15-como-trabajamos-juntos.md\) | Modelo de colaboración y tema ) Tj
+T* (del acceso a tu PC |) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (##  Resumen en una frase) Tj
+T* () Tj
+T* (**CorteIA** convierte material en bruto en un primer montaje \("rough cut"\) automático dentro de ) Tj
+T* (Premiere Pro, adaptando los criterios de corte al tipo de video que estás editando.) Tj
+T* () Tj
+T* (##  Datos base del proyecto) Tj
+T* () Tj
+T* (| Dato | Valor |) Tj
+T* (|------|-------|) Tj
+T* (| **App objetivo** | Adobe Premiere Pro **26.3.2** \(Premiere 2026\) |) Tj
+T* (| **Tecnología del panel** | **UXP** \(Unified Extensibility Platform\) - estándar en Premiere ) Tj
+T* (2026 |) Tj
+T* (| **Plataformas** | macOS y Windows |) Tj
+T* (| **Transcripción** | Local \(gratis\) **o** por API - elegible por el usuario |) Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 3375 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(| **Análisis** | Audio + texto **+ visión \(frame a frame\)** |) Tj
+T* (| **Estructura** | Organiza en Hook -> Gancho -> Cuerpo -> CTA |) Tj
+T* (| **Duración final** | Elegible por el usuario \(15s / 30s / 60s / personalizada / auto\) |) Tj
+T* (| **Formato** | Elegible: 9:16, 16:9, 1:1, 4:5 u original \(con reencuadre automático\) |) Tj
+T* (| **Idiomas** | Español e Inglés \(objetivo principal\) · Alemán y Francés \(deseables\) |) Tj
+T* (| **Entrega final** | Secuencia editada en el timeline de Premiere |) Tj
+T* () Tj
+T* (##  Estado actual) Tj
+T* () Tj
+T* (- [OK] Documentación de diseño \(este set\)) Tj
+T* (-  Aprobación del diseño por el usuario) Tj
+T* (-  Prototipo del panel UXP \(UI + botón iniciar\)) Tj
+T* (-  Motor de transcripción + análisis) Tj
+T* (-  Generación de cortes en el timeline) Tj
+T* (-  Empaquetado e instalación \(Mac/Win\)) Tj
+T* () Tj
+T* (> Ver detalle en [07 · Roadmap y fases]\(./07-roadmap.md\).) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 01 · Visión y alcance) Tj
+T* () Tj
+T* (## El problema) Tj
+T* () Tj
+T* (Editar video en bruto consume horas: hay que ver todo el material, identificar los momentos ) Tj
+T* (buenos, descartar silencios/errores y armar un primer montaje antes siquiera de empezar el ) Tj
+T* (trabajo creativo fino. Ese "primer corte" es repetitivo y mecánico.) Tj
+T* () Tj
+T* (## La solución) Tj
+T* () Tj
+T* (**CorteIA** automatiza ese primer montaje. El editor:) Tj
+T* () Tj
+T* (1. Le indica una **carpeta** con los videos.) Tj
+T* (2. Elige el **tipo de contenido** \(reel, política, deporte, ecommerce, entrevista...\).) Tj
+T* (3. Pulsa **Iniciar**.) Tj
+T* () Tj
+T* (La herramienta analiza el material, decide qué es lo importante **según el tipo de video**, ) Tj
+T* (calcula los cortes y deja una **secuencia editada lista para refinar** en el timeline de ) Tj
+T* (Premiere.) Tj
+T* () Tj
+T* (## Qué hace \(v1\)) Tj
+T* () Tj
+T* (- [OK] Lee todos los videos de una carpeta.) Tj
+T* (- [OK] Extrae el audio y lo **transcribe** \(local gratis o por API\).) Tj
+T* (- [OK] Detecta **silencios y pausas largas** para eliminarlos.) Tj
+T* (- [OK] Aplica un **perfil de corte** según el tipo de video elegido.) Tj
+T* (- [OK] Permite **elegir la duración** del video final \(15s, 30s, 60s, personalizada o ) Tj
+T* (automática\) y ajusta los cortes a ese objetivo.) Tj
+T* (- [OK] Permite **elegir el formato** \(9:16, 16:9, 1:1, 4:5 u original\) con **reencuadre ) Tj
+T* (automático** del sujeto.) Tj
+T* (- [OK] Usa **IA** para puntuar y seleccionar los segmentos más relevantes.) Tj
+T* (- [OK] Construye la **secuencia con los cortes** directamente en Premiere.) Tj
+T* (- [OK] Muestra **progreso** y un **resumen** de lo que hizo.) Tj
+T* () Tj
+T* (## Qué NO hace \(en v1 - para no sobre-prometer\)) Tj
+T* () Tj
+T* (- [NO] No hace color grading, música, transiciones creativas ni motion graphics.) Tj
+T* (- [NO] No decide el orden narrativo "perfecto"; entrega un **rough cut** que tú refinas.) Tj
+T* (- [NO] No sube nada a redes ni exporta el video final \(se queda en el timeline\).) Tj
+T* (- [NO] No reconoce caras/personas específicas \(posible en fases futuras\).) Tj
+T* () Tj
+T* (> **Principio clave:** CorteIA es un **asistente que te ahorra el 80% del trabajo mecánico**, no) Tj
+T* ( un reemplazo del editor. La última palabra siempre es tuya, sobre un timeline que puedes ) Tj
+T* (ajustar.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 3044 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+() Tj
+T* (## Usuarios objetivo) Tj
+T* () Tj
+T* (- Editores y creadores de contenido que procesan **mucho material repetitivo**.) Tj
+T* (- Equipos de social media \(reels, ecommerce\) que necesitan **velocidad**.) Tj
+T* (- Periodistas / equipos políticos que arman piezas a partir de **declaraciones**.) Tj
+T* () Tj
+T* (## Criterios de éxito) Tj
+T* () Tj
+T* (| Métrica | Meta v1 |) Tj
+T* (|---------|---------|) Tj
+T* (| Tiempo de "material bruto -> rough cut" | Reducirlo **>=70%** |) Tj
+T* (| Precisión de la transcripción \(ES/EN\) | Usable sin corrección mayor |) Tj
+T* (| Cortes útiles vs. cortes descartados por el editor | Mayoría aprovechables |) Tj
+T* (| Que el timeline abra sin errores en Premiere 26.3.2 | 100% |) Tj
+T* () Tj
+T* (## Alcance de plataformas e idiomas) Tj
+T* () Tj
+T* (- **Plataformas:** macOS y Windows \(mismo código UXP, empaquetado por SO\).) Tj
+T* (- **Idiomas de transcripción:**) Tj
+T* (  - **Prioridad 1:** Español e Inglés.) Tj
+T* (  - **Deseables:** Alemán y Francés \(se activan si el motor los soporta con calidad suficiente; ) Tj
+T* (si no, quedan para una fase posterior\).) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 02 · Arquitectura técnica) Tj
+T* () Tj
+T* (## Decisión clave: UXP \(no CEP\)) Tj
+T* () Tj
+T* (En **Premiere Pro 2026 \(v26.x\)**, Adobe convirtió **UXP** \(Unified Extensibility Platform\) en el) Tj
+T* ( estándar oficial de extensiones. La tecnología antigua **CEP** quedó **obsoleta**: ya no se ) Tj
+T* (carga automáticamente y solo tendrá soporte durante ~1 año más.) Tj
+T* () Tj
+T* (> **Conclusión:** el panel de CorteIA se construye en **UXP**. Empezar en CEP hoy sería empezar ) Tj
+T* (con tecnología muerta.) Tj
+T* () Tj
+T* (**Qué nos da UXP en Premiere 2026:**) Tj
+T* (- Paneles con **HTML + CSS + JavaScript/TypeScript**.) Tj
+T* (- Paquete oficial `@adobe/premierepro` \(npm\) con tipos TypeScript.) Tj
+T* (- APIs de **proyectos, secuencias, marcadores, transcripciones, import/export**.) Tj
+T* (- **Procesos externos** \(poder llamar a FFmpeg / Whisper desde el panel\).) Tj
+T* (- **Acceso a sistema de archivos** \(leer la carpeta de videos\).) Tj
+T* () Tj
+T* (## Vista general de componentes) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph TD) Tj
+T* (    subgraph Premiere["Adobe Premiere Pro 26.3.2"]) Tj
+T* (        UI["Panel UXP · Interfaz<br/>\(carpeta, tipo de video, iniciar\)"]) Tj
+T* (        HOST["API @adobe/premierepro<br/>\(crea la secuencia y los cortes\)"]) Tj
+T* (    end) Tj
+T* () Tj
+T* (    subgraph Motor["Motor de CorteIA \(procesos locales\)"]) Tj
+T* (        FF["FFmpeg<br/>audio + frames + escenas"]) Tj
+T* (        TR["Transcripción<br/>\(local Whisper / API\)"]) Tj
+T* (        VIS["Análisis visual<br/>\(modelo de visión\)"]) Tj
+T* (        AN["Análisis IA<br/>\(perfil + roles narrativos\)"]) Tj
+T* (        PLAN["Planificador de cortes<br/>\(lista de segmentos + roles\)"]) Tj
+T* (    end) Tj
+T* () Tj
+T* (    UI -->|1. carpeta + tipo| FF) Tj
+T* (    FF -->|2a. audio.wav| TR) Tj
+T* (    FF -->|2b. frames.jpg + escenas| VIS) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 3393 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(    TR -->|3a. transcripción con tiempos| AN) Tj
+T* (    VIS -->|3b. score visual + etiquetas| AN) Tj
+T* (    AN -->|4. segmentos puntuados + rol| PLAN) Tj
+T* (    PLAN -->|5. EDL / lista de cortes| HOST) Tj
+T* (    HOST -->|6. secuencia editada + marcadores| UI) Tj
+T* (```) Tj
+T* () Tj
+T* (> El análisis **visual** \(frame a frame\) corre en paralelo al de audio y ambos se fusionan en el) Tj
+T* ( paso 4. Detalle en [09 · Análisis visual]\(./09-analisis-visual.md\) y [10 · Estructura ) Tj
+T* (narrativa]\(./10-estructura-narrativa.md\).) Tj
+T* () Tj
+T* (## El flujo, paso a paso) Tj
+T* () Tj
+T* (1. **Entrada** - El usuario elige carpeta + tipo de video en el panel UXP.) Tj
+T* (2. **Extracción** - FFmpeg saca el audio \(WAV 16 kHz mono\) y metadatos \(duración, fps, ) Tj
+T* (resolución\) de cada clip.) Tj
+T* (3. **Transcripción** - El audio se convierte en texto **con marcas de tiempo por ) Tj
+T* (palabra/frase**. Local \(gratis\) o API, según preferencia.) Tj
+T* (4. **Análisis** - Un modelo de lenguaje \(LLM\) recibe la transcripción + el **perfil del tipo de ) Tj
+T* (video** y devuelve los segmentos importantes con una **puntuación**.) Tj
+T* (5. **Planificación de cortes** - Se traduce todo a una **lista de cortes**: `clip, entrada, ) Tj
+T* (salida` \(formato tipo EDL interno\).) Tj
+T* (6. **Construcción** - Vía `@adobe/premierepro`, el panel importa los clips y **inserta cada ) Tj
+T* (segmento** en una secuencia nueva, en orden.) Tj
+T* (7. **Salida** - La secuencia aparece en el timeline + un **resumen** \(cuántos cortes, duración ) Tj
+T* (final, qué se descartó\).) Tj
+T* () Tj
+T* (## ¿Dónde corre el "motor"?) Tj
+T* () Tj
+T* (El análisis pesado \(FFmpeg, Whisper, LLM\) **no debe correr dentro del hilo de UI** de Premiere ) Tj
+T* (para no congelarlo. Opciones:) Tj
+T* () Tj
+T* (- **Proceso externo** lanzado por UXP \(Node/binarios embebidos\) que hace el trabajo y devuelve ) Tj
+T* (el resultado. *\(Enfoque recomendado.\)*) Tj
+T* (- La transcripción por API se hace con llamadas de red normales.) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (sequenceDiagram) Tj
+T* (    participant U as Usuario) Tj
+T* (    participant P as Panel UXP) Tj
+T* (    participant M as Motor \(proceso externo\)) Tj
+T* (    participant PP as Premiere \(API\)) Tj
+T* () Tj
+T* (    U->>P: Elige carpeta + tipo + Iniciar) Tj
+T* (    P->>M: Lanza análisis \(carpeta, perfil\)) Tj
+T* (    M->>M: FFmpeg -> Transcribe -> Analiza -> Planifica) Tj
+T* (    M-->>P: Lista de cortes \(JSON\)) Tj
+T* (    P->>PP: Crea secuencia + inserta cortes) Tj
+T* (    PP-->>P: Secuencia lista) Tj
+T* (    P-->>U: Timeline editado + resumen) Tj
+T* (```) Tj
+T* () Tj
+T* (## Componentes y responsabilidades) Tj
+T* () Tj
+T* (| Componente | Tecnología | Responsabilidad |) Tj
+T* (|------------|-----------|-----------------|) Tj
+T* (| **Panel UI** | UXP \(HTML/CSS/JS o TS\) | Interfaz, elegir carpeta/tipo, progreso |) Tj
+T* (| **Puente con Premiere** | `@adobe/premierepro` | Importar clips, crear secuencia, insertar ) Tj
+T* (cortes |) Tj
+T* (| **Extractor** | FFmpeg \(binario embebido\) | Audio + metadatos de cada video |) Tj
+T* (| **Transcriptor** | Whisper local **o** API | Texto con marcas de tiempo |) Tj
+T* (| **Analizador** | LLM \(local o API\) + perfiles | Elegir y puntuar segmentos |) Tj
+T* (| **Planificador** | Lógica JS | Convertir a lista de cortes \(EDL\) |) Tj
+T* () Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 2965 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(## Formato interno de cortes \(borrador\)) Tj
+T* () Tj
+T* (```json) Tj
+T* ({) Tj
+T* (  "sequenceName": "CorteIA - Reel - 2026-08-19",) Tj
+T* (  "profile": "reel",) Tj
+T* (  "language": "es",) Tj
+T* (  "cuts": [) Tj
+T* (    { "clip": "toma01.mp4", "in": 12.4, "out": 18.9, "score": 0.92, "reason": "gancho fuerte" },) Tj
+T* (    { "clip": "toma01.mp4", "in": 45.0, "out": 51.2, "score": 0.81, "reason": "punto clave" },) Tj
+T* (    { "clip": "toma02.mp4", "in": 3.5,  "out": 9.0,  "score": 0.77, "reason": "cierre" }) Tj
+T* (  ]) Tj
+T* (}) Tj
+T* (```) Tj
+T* () Tj
+T* (Este JSON es el "contrato" entre el motor y el panel: si cambia el motor, mientras entregue este) Tj
+T* ( formato, el panel sigue funcionando.) Tj
+T* () Tj
+T* (## Riesgos técnicos conocidos) Tj
+T* () Tj
+T* (| Riesgo | Mitigación |) Tj
+T* (|--------|-----------|) Tj
+T* (| APIs de timeline UXP aún maduran \(algunas operaciones pesadas pueden trabar la UI\) | Hacer ) Tj
+T* (inserciones por lotes; validar en el prototipo temprano |) Tj
+T* (| No puedo **probar** contra Premiere desde este entorno | Se entrega listo + probamos juntos en) Tj
+T* ( tu Mac/Windows |) Tj
+T* (| Binarios FFmpeg/Whisper distintos por SO | Empaquetar binario correcto por plataforma |) Tj
+T* (| Modelos locales pesan \(Whisper\) | Ofrecer modelo pequeño por defecto + opción API |) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 03 · Perfiles de video \(el "cerebro" de los cortes\)) Tj
+T* () Tj
+T* (Cada **tipo de video** define **qué es lo importante** y **cómo se corta**. Esto es lo que hace ) Tj
+T* (que CorteIA sea útil: un reel no se edita igual que una entrevista política.) Tj
+T* () Tj
+T* (Los perfiles son **archivos de configuración editables** \(JSON/YAML\), así puedes ajustar el ) Tj
+T* (comportamiento sin tocar el código.) Tj
+T* () Tj
+T* (## Parámetros que controla cada perfil) Tj
+T* () Tj
+T* (| Parámetro | Qué hace |) Tj
+T* (|-----------|----------|) Tj
+T* (| `maxSilence` | Silencio máximo permitido antes de cortar \(seg\) |) Tj
+T* (| `minClip` / `maxClip` | Duración mínima/máxima de cada segmento |) Tj
+T* (| `targetDuration` | Duración objetivo del resultado final \(opcional\) |) Tj
+T* (| `pace` | Ritmo: `rápido`, `medio`, `pausado` |) Tj
+T* (| `keep` | Qué priorizar \(ganchos, declaraciones, acción, producto...\) |) Tj
+T* (| `remove` | Qué eliminar \(silencios, muletillas, repeticiones, errores\) |) Tj
+T* (| `scoringPrompt` | Instrucción a la IA sobre cómo puntuar la relevancia |) Tj
+T* (| `respectSentences` | Si respeta frases completas o permite cortes internos |) Tj
+T* () Tj
+T* (## Perfiles iniciales \(v1\)) Tj
+T* () Tj
+T* (###  Reel / Social) Tj
+T* (Cortes rápidos, engancha en los primeros segundos, elimina todo lo muerto.) Tj
+T* (```yaml) Tj
+T* (pace: rápido) Tj
+T* (maxSilence: 0.4) Tj
+T* (minClip: 1.0) Tj
+T* (maxClip: 6.0) Tj
+T* (targetDuration: 30) Tj
+T* (respectSentences: false) Tj
+T* (keep: [gancho, momento_alta_energía, remate, dato_llamativo]) Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 2617 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(remove: [silencio, muletilla, repetición, titubeo]) Tj
+T* (scoringPrompt: >) Tj
+T* (  Prioriza momentos con gancho, emoción o sorpresa. Penaliza intros lentas.) Tj
+T* (  El primer clip debe captar atención en menos de 2 segundos.) Tj
+T* (```) Tj
+T* () Tj
+T* (###  Política / Declaraciones) Tj
+T* (Respeta frases completas, prioriza afirmaciones con peso, mantiene contexto.) Tj
+T* (```yaml) Tj
+T* (pace: pausado) Tj
+T* (maxSilence: 1.0) Tj
+T* (minClip: 3.0) Tj
+T* (maxClip: 25.0) Tj
+T* (respectSentences: true) Tj
+T* (keep: [declaración_clave, cifra, promesa, postura, respuesta_directa]) Tj
+T* (remove: [silencio_largo, muletilla, pregunta_repetida]) Tj
+T* (scoringPrompt: >) Tj
+T* (  Prioriza declaraciones claras, cifras, compromisos y respuestas directas.) Tj
+T* (  Nunca cortes una frase a la mitad ni saques algo de contexto.) Tj
+T* (```) Tj
+T* () Tj
+T* (###  Deporte) Tj
+T* (Detecta acción y picos de audio \(goles, jugadas, celebraciones, narración intensa\).) Tj
+T* (```yaml) Tj
+T* (pace: rápido) Tj
+T* (maxSilence: 0.6) Tj
+T* (minClip: 2.0) Tj
+T* (maxClip: 12.0) Tj
+T* (respectSentences: false) Tj
+T* (keep: [pico_de_audio, momento_de_acción, celebración, jugada_clave]) Tj
+T* (remove: [tiempo_muerto, repetición_lenta]) Tj
+T* (scoringPrompt: >) Tj
+T* (  Prioriza picos de energía en audio y narración intensa \(posibles goles/jugadas\).) Tj
+T* (  Usa el volumen y las palabras del narrador como señal de importancia.) Tj
+T* (```) Tj
+T* () Tj
+T* (###  Ecommerce / Producto) Tj
+T* (Muestra el producto, beneficios y llamado a la acción; ritmo ágil y limpio.) Tj
+T* (```yaml) Tj
+T* (pace: medio) Tj
+T* (maxSilence: 0.5) Tj
+T* (minClip: 1.5) Tj
+T* (maxClip: 8.0) Tj
+T* (targetDuration: 45) Tj
+T* (respectSentences: false) Tj
+T* (keep: [presentación_producto, beneficio, característica, precio, llamado_acción]) Tj
+T* (remove: [silencio, duda, información_redundante]) Tj
+T* (scoringPrompt: >) Tj
+T* (  Prioriza claridad del producto, beneficios concretos y el llamado a la acción final.) Tj
+T* (  Ordena para terminar en una invitación a comprar/actuar.) Tj
+T* (```) Tj
+T* () Tj
+T* (###  Educativo / Tutorial) Tj
+T* (Prioriza claridad y pasos ordenados; mantiene explicaciones completas, quita relleno.) Tj
+T* (```yaml) Tj
+T* (pace: medio) Tj
+T* (maxSilence: 0.7) Tj
+T* (minClip: 3.0) Tj
+T* (maxClip: 30.0) Tj
+T* (respectSentences: true) Tj
+T* (keep: [concepto_clave, paso, ejemplo, definición, conclusión]) Tj
+T* (remove: [silencio, muletilla, digresión, repetición]) Tj
+T* (scoringPrompt: >) Tj
+T* (  Prioriza explicaciones claras, pasos y ejemplos. Mantén el orden lógico) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 2628 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(  \(introducción -> desarrollo -> conclusión\). No cortes a mitad de una idea.) Tj
+T* (```) Tj
+T* () Tj
+T* (###  Anuncios / Publicidad) Tj
+T* (Mensaje directo, marca visible, beneficio y CTA potente; ritmo persuasivo.) Tj
+T* (```yaml) Tj
+T* (pace: rápido) Tj
+T* (maxSilence: 0.4) Tj
+T* (minClip: 1.0) Tj
+T* (maxClip: 8.0) Tj
+T* (targetDuration: 20) Tj
+T* (respectSentences: false) Tj
+T* (keep: [gancho, propuesta_de_valor, marca, beneficio, llamado_acción]) Tj
+T* (remove: [silencio, duda, relleno, información_secundaria]) Tj
+T* (scoringPrompt: >) Tj
+T* (  Prioriza un gancho fuerte en los primeros segundos, la propuesta de valor) Tj
+T* (  y un cierre con llamado a la acción claro. Mantén la marca visible si aparece.) Tj
+T* (```) Tj
+T* () Tj
+T* (###  Entrevista / Podcast) Tj
+T* (Mantiene el hilo de la conversación, elimina divagaciones y silencios.) Tj
+T* (```yaml) Tj
+T* (pace: medio) Tj
+T* (maxSilence: 0.8) Tj
+T* (minClip: 4.0) Tj
+T* (maxClip: 40.0) Tj
+T* (respectSentences: true) Tj
+T* (keep: [respuesta_sustanciosa, anécdota, punto_de_vista, momento_emotivo]) Tj
+T* (remove: [silencio, muletilla, divagación, tema_irrelevante]) Tj
+T* (scoringPrompt: >) Tj
+T* (  Prioriza respuestas con contenido, historias y opiniones claras.) Tj
+T* (  Mantén el hilo lógico de la conversación.) Tj
+T* (```) Tj
+T* () Tj
+T* (## Cómo la IA usa el perfil) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    A[Transcripción con tiempos] --> C{Análisis IA}) Tj
+T* (    B[Perfil del tipo de video] --> C) Tj
+T* (    D[Señales de audio<br/>silencios, picos] --> C) Tj
+T* (    C --> E[Segmentos puntuados 0-1<br/>+ motivo de cada uno]) Tj
+T* (    E --> F[Filtro por umbral<br/>y reglas del perfil]) Tj
+T* (    F --> G[Lista final de cortes]) Tj
+T* (```) Tj
+T* () Tj
+T* (1. La IA recibe la transcripción + las **reglas del perfil** \(`scoringPrompt`, `keep`, ) Tj
+T* (`remove`\).) Tj
+T* (2. Devuelve cada segmento con un **puntaje 0-1** y un **motivo**.) Tj
+T* (3. Se aplican las reglas duras \(`minClip`, `maxSilence`, `respectSentences`, `targetDuration`\).) Tj
+T* (4. Se obtiene la **lista de cortes** final.) Tj
+T* () Tj
+T* (## Extensibilidad) Tj
+T* () Tj
+T* (Añadir un tipo nuevo \(ej. "Educativo", "Boda", "Gaming"\) = crear un archivo de perfil nuevo. No ) Tj
+T* (requiere reprogramar el motor. El desplegable del panel se llena leyendo la carpeta de perfiles.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 04 · Flujo de usuario \(UX del panel\)) Tj
+T* () Tj
+T* (## Dónde vive el panel) Tj
+T* () Tj
+T* (Dentro de Premiere: **Ventana -> Extensiones \(UXP\) -> CorteIA**. Se acopla como cualquier otro ) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Length 2390 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(panel \(puedes anclarlo junto a Efectos, Proyecto, etc.\).) Tj
+T* () Tj
+T* (## Pantalla principal \(v1\)) Tj
+T* () Tj
+T* (```) Tj
+T* () Tj
+T* (  CorteIA) Tj
+T* () Tj
+T* () Tj
+T* (   Carpeta de videos) Tj
+T* (  [ /Users/.../material        ] [Elegir]) Tj
+T* () Tj
+T* (   Tipo de video) Tj
+T* (  [ Reel / Social             ]) Tj
+T* () Tj
+T* (   Duración del video final) Tj
+T* (  [ 30 s  ]   \( 15s · 30s · 60s ·) Tj
+T* (                 Personalizada · Auto \)) Tj
+T* () Tj
+T* (   Formato / relación de aspecto) Tj
+T* (  [ 9:16 Vertical  ]) Tj
+T* (    \( 9:16 · 16:9 · 1:1 · 4:5 · Original\)) Tj
+T* () Tj
+T* (   Idioma) Tj
+T* (  [ Español                   ]) Tj
+T* () Tj
+T* (   Transcripción) Tj
+T* (  \( \) Local \(gratis\)   \(*\) API) Tj
+T* () Tj
+T* (  > Opciones avanzadas) Tj
+T* () Tj
+T* (         [  >  Iniciar  ]) Tj
+T* () Tj
+T* () Tj
+T* (```) Tj
+T* () Tj
+T* (###  Control de duración del video final) Tj
+T* () Tj
+T* (El usuario elige **cuánto debe durar** la secuencia resultante:) Tj
+T* () Tj
+T* (| Opción | Comportamiento |) Tj
+T* (|--------|----------------|) Tj
+T* (| **Presets** \(15 s · 30 s · 60 s · 90 s\) | Duración fija típica de reels/social |) Tj
+T* (| **Personalizada** | El usuario escribe el valor exacto \(ej. `00:45` o `2:30`\) |) Tj
+T* (| **Rango** \(avanzado\) | Un mínimo-máximo \(ej. 25-35 s\) para más flexibilidad de montaje |) Tj
+T* (| **Automática** | Sin límite fijo: usa todos los segmentos que superen el umbral de calidad |) Tj
+T* () Tj
+T* (> El valor elegido en la UI **sobrescribe** el `targetDuration` por defecto del perfil \(ver [03 ) Tj
+T* (· Perfiles]\(./03-perfiles-de-video.md\)\).) Tj
+T* () Tj
+T* (**¿Cómo el motor cumple la duración?** El planificador tiene los segmentos ya puntuados \(audio +) Tj
+T* ( visión\) y los ajusta al objetivo:) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph TD) Tj
+T* (    A[Segmentos puntuados] --> B{¿Suman más o menos<br/>que la duración objetivo?}) Tj
+T* (    B -->|Más largo| C[Quita los de menor score<br/>hasta llegar al objetivo]) Tj
+T* (    B -->|Más corto| D[Añade los siguientes mejores<br/>o afloja el umbral]) Tj
+T* (    C --> E[Respeta estructura<br/>Hook + CTA siempre]) Tj
+T* (    D --> E) Tj
+T* (    E --> F[Secuencia final  duración pedida]) Tj
+T* (```) Tj
+T* () Tj
+T* (- Si el material bueno **sobra** -> prioriza los segmentos de **mayor puntaje** y descarta el ) Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 17 0 R >>
+endobj
+19 0 obj
+<< /Length 2994 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(resto, manteniendo siempre **Hook** y **CTA**.) Tj
+T* (- Si el material bueno **falta** -> añade los siguientes mejores o avisa: *"Con material de ) Tj
+T* (calidad solo se llega a 00:22 de los 00:30 pedidos"*.) Tj
+T* (- Respeta las reglas del perfil \(`minClip`, `maxClip`\) para que ningún corte quede antinatural.) Tj
+T* (- La duración final es **aproximada** \(los cortes caen en límites de frase/plano\), no exacta al ) Tj
+T* (frame - se prioriza que se vea bien.) Tj
+T* () Tj
+T* (###  Formato / relación de aspecto) Tj
+T* () Tj
+T* (El usuario elige la forma del video final; la secuencia se crea con ese tamaño:) Tj
+T* () Tj
+T* (| Formato | Uso típico |) Tj
+T* (|---------|-----------|) Tj
+T* (| **9:16** \(vertical\) | Reels, TikTok, Shorts, Stories |) Tj
+T* (| **16:9** \(horizontal\) | YouTube, TV, web |) Tj
+T* (| **1:1** \(cuadrado\) | Feed de Instagram/Facebook |) Tj
+T* (| **4:5** \(retrato\) | Feed vertical de Instagram |) Tj
+T* (| **Original** | Mantiene el formato del material |) Tj
+T* () Tj
+T* (**Cómo se aplica:**) Tj
+T* (- La secuencia se crea directamente con el tamaño/relación elegida.) Tj
+T* (- Si el material original es de otra forma \(ej. grabaste en 16:9 y quieres 9:16\), se aplica ) Tj
+T* (**reencuadre automático** \(estilo *Auto Reframe* de Premiere\) para **mantener al sujeto ) Tj
+T* (centrado** usando las señales del análisis visual \(caras/movimiento\). Ver [09 · Análisis ) Tj
+T* (visual]\(./09-analisis-visual.md\).) Tj
+T* (- Queda editable: puedes reajustar el encuadre de cualquier clip después.) Tj
+T* () Tj
+T* (## Estados de la interfaz) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (stateDiagram-v2) Tj
+T* (    [*] --> Configurar) Tj
+T* (    Configurar --> Procesando: Iniciar) Tj
+T* (    Procesando --> Revisar: Análisis listo) Tj
+T* (    Revisar --> Construyendo: Aprobar cortes) Tj
+T* (    Configurar --> Construyendo: \(modo automático\)) Tj
+T* (    Construyendo --> Listo: Secuencia creada) Tj
+T* (    Listo --> Configurar: Nuevo proceso) Tj
+T* (    Procesando --> Error: Falla) Tj
+T* (    Error --> Configurar: Reintentar) Tj
+T* (```) Tj
+T* () Tj
+T* (### 1. Configurar) Tj
+T* (El usuario define carpeta, tipo, idioma y modo de transcripción. Opciones avanzadas: duración ) Tj
+T* (objetivo, umbral de silencio, aprobar cortes antes de construir.) Tj
+T* () Tj
+T* (### 2. Procesando \(con progreso real\)) Tj
+T* (```) Tj
+T* (Analizando material...) Tj
+T* ([] 70%) Tj
+T* ( 3 clips leídos) Tj
+T* ( Audio extraído) Tj
+T* ( Transcripción completa \(es\)) Tj
+T* ( Analizando importancia \(perfil: Reel\)...) Tj
+T* (```) Tj
+T* () Tj
+T* (### 3. Revisar \(opcional, recomendado\)) Tj
+T* (Antes de construir, muestra la lista de cortes propuestos para aprobar/descartar:) Tj
+T* (```) Tj
+T* (Cortes propuestos \(12\) · Duración final ~00:31) Tj
+T* ( toma01 · 00:12-00:19 · gancho fuerte      \(0.92\)) Tj
+T* ( toma01 · 00:45-00:51 · punto clave        \(0.81\)) Tj
+T* ( toma02 · 01:10-01:14 · relleno            \(0.40\)) Tj
+T* (...) Tj
+ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 19 0 R >>
+endobj
+21 0 obj
+<< /Length 2904 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(      [ Aprobar y construir ]  [ Ajustar ]) Tj
+T* (```) Tj
+T* (> Este paso lo pediste explícitamente como opción. Se puede desactivar para un flujo 100% ) Tj
+T* (automático.) Tj
+T* () Tj
+T* (### 4. Construyendo) Tj
+T* (El panel crea la secuencia e inserta cada corte en el timeline de Premiere.) Tj
+T* () Tj
+T* (### 5. Listo) Tj
+T* (```) Tj
+T* ([OK] Secuencia "CorteIA - Reel - 2026-08-19" creada) Tj
+T* (   12 cortes · 00:31 de duración) Tj
+T* (   Se descartaron 00:04:20 de material \(silencios/relleno\)) Tj
+T* (   [ Abrir en timeline ]   [ Ver resumen ]   [ Nuevo ]) Tj
+T* (```) Tj
+T* () Tj
+T* (## Opciones avanzadas \(plegadas por defecto\)) Tj
+T* () Tj
+T* (- **Aprobar cortes antes de construir** \(on/off\)) Tj
+T* (- **Duración objetivo** \(para reel/ecommerce\)) Tj
+T* (- **Umbral de silencio** \(fino/grueso\)) Tj
+T* (- **Modelo IA** \(local pequeño / grande / API\)) Tj
+T* (- **Carpeta de salida de audios temporales**) Tj
+T* () Tj
+T* (## Principios de UX) Tj
+T* () Tj
+T* (- **Un botón manda:** "Iniciar" siempre visible y claro.) Tj
+T* (- **Progreso honesto:** muestra qué está pasando, no una barra falsa.) Tj
+T* (- **Reversible:** todo termina en un timeline editable; nada es destructivo sobre tus archivos ) Tj
+T* (originales.) Tj
+T* (- **Idioma de la interfaz:** Español \(con opción a Inglés más adelante\).) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 05 · Transcripción y análisis IA) Tj
+T* () Tj
+T* (Esta es la parte que "entiende" los videos. Tiene dos etapas: **transcribir** \(audio -> texto ) Tj
+T* (con tiempos\) y **analizar** \(texto -> segmentos importantes\).) Tj
+T* () Tj
+T* (## Etapa 1 · Transcripción) Tj
+T* () Tj
+T* (El usuario elige entre dos modos:) Tj
+T* () Tj
+T* (###  Modo Local \(gratis\)) Tj
+T* (- Corre en la propia computadora con **Whisper** \(modelo open source de OpenAI\) o equivalente ) Tj
+T* (\(ej. `faster-whisper`\).) Tj
+T* (- **Ventajas:** sin costo por uso, privado \(el audio no sale del equipo\), funciona sin internet.) Tj
+T* (- **Contras:** más lento; los modelos grandes pesan y piden más CPU/GPU.) Tj
+T* (- **Recomendación:** modelo **pequeño/medio** por defecto para equilibrio velocidad/calidad.) Tj
+T* () Tj
+T* (###  Modo API) Tj
+T* (- Envía el audio a un servicio de transcripción \(ej. OpenAI Whisper API u otro\).) Tj
+T* (- **Ventajas:** rápido, alta precisión, no exige hardware potente.) Tj
+T* (- **Contras:** tiene costo por minuto y requiere **API key** + internet.) Tj
+T* () Tj
+T* (> **Nota de privacidad:** el modo API implica que el audio se procesa en un servicio externo. ) Tj
+T* (Para material sensible \(ej. política\), el modo local puede ser preferible.) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph TD) Tj
+T* (    A[Audio WAV 16kHz] --> B{Modo elegido}) Tj
+T* (    B -->|Local| C[Whisper en el equipo]) Tj
+T* (    B -->|API| D[Servicio de transcripción]) Tj
+T* (    C --> E[Texto + marcas de tiempo]) Tj
+ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 21 0 R >>
+endobj
+23 0 obj
+<< /Length 2749 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(    D --> E) Tj
+T* (    E --> F[Se guarda como transcript.json]) Tj
+T* (```) Tj
+T* () Tj
+T* (### Salida de la transcripción) Tj
+T* (Texto con **marcas de tiempo por segmento** \(idealmente por palabra\), que permite cortar con ) Tj
+T* (precisión:) Tj
+T* (```json) Tj
+T* ({) Tj
+T* (  "language": "es",) Tj
+T* (  "segments": [) Tj
+T* (    { "start": 12.40, "end": 15.10, "text": "Hoy te muestro el truco que cambió todo" },) Tj
+T* (    { "start": 15.10, "end": 16.00, "text": "eh..." },) Tj
+T* (    { "start": 16.00, "end": 18.90, "text": "y lo puedes hacer en dos minutos" }) Tj
+T* (  ]) Tj
+T* (}) Tj
+T* (```) Tj
+T* () Tj
+T* (## Idiomas soportados) Tj
+T* () Tj
+T* (| Idioma | Prioridad | Notas |) Tj
+T* (|--------|-----------|-------|) Tj
+T* (| ES Español | **Alta \(garantizado\)** | Objetivo principal |) Tj
+T* (| EN Inglés | **Alta \(garantizado\)** | Objetivo principal |) Tj
+T* (| DE Alemán | Media \(deseable\) | Whisper y APIs lo soportan; se valida calidad en pruebas |) Tj
+T* (| FR Francés | Media \(deseable\) | Igual que alemán |) Tj
+T* () Tj
+T* (> Whisper soporta ~100 idiomas, así que alemán y francés **técnicamente entran**. Se marcan como) Tj
+T* ( "deseables" solo para no comprometer calidad hasta validarlos con material real. Detección ) Tj
+T* (automática de idioma también es posible.) Tj
+T* () Tj
+T* (## Etapa 2 · Análisis IA \(elegir lo importante\)) Tj
+T* () Tj
+T* (Una vez hay transcripción + señales de audio \(silencios, picos de volumen\), un **modelo de ) Tj
+T* (lenguaje \(LLM\)** decide qué segmentos importan, guiado por el **perfil del tipo de video** \(ver ) Tj
+T* ([03 · Perfiles]\(./03-perfiles-de-video.md\)\).) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    A[transcript.json] --> D[LLM]) Tj
+T* (    B[Señales de audio<br/>silencios / picos] --> D) Tj
+T* (    C[Perfil del tipo de video<br/>scoringPrompt, keep, remove] --> D) Tj
+T* (    D --> E[Segmentos con score 0-1<br/>+ motivo]) Tj
+T* (    E --> F[Reglas duras del perfil]) Tj
+T* (    F --> G[Lista de cortes final]) Tj
+T* (```) Tj
+T* () Tj
+T* (### Qué recibe el LLM \(esquema del prompt\)) Tj
+T* (- La transcripción con tiempos.) Tj
+T* (- El `scoringPrompt` del perfil \(cómo puntuar\).) Tj
+T* (- Las listas `keep` / `remove`.) Tj
+T* (- Restricciones: `minClip`, `maxClip`, `respectSentences`, `targetDuration`.) Tj
+T* () Tj
+T* (### Qué devuelve) Tj
+T* (```json) Tj
+T* ({) Tj
+T* (  "segments": [) Tj
+T* (    { "start": 12.4, "end": 18.9, "score": 0.92, "reason": "gancho fuerte, promesa clara" },) Tj
+T* (    { "start": 15.1, "end": 16.0, "score": 0.05, "reason": "muletilla 'eh', eliminar" }) Tj
+T* (  ]) Tj
+T* (}) Tj
+T* (```) Tj
+T* () Tj
+T* (### El LLM puede ser local o por API \(igual que la transcripción\)) Tj
+ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 23 0 R >>
+endobj
+25 0 obj
+<< /Length 3071 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(- **Local:** un modelo abierto en el equipo \(privado, sin costo\).) Tj
+T* (- **API:** un modelo potente \(mejor razonamiento, con costo/API key\).) Tj
+T* () Tj
+T* (## Señales de audio \(complemento sin costo\)) Tj
+T* () Tj
+T* (Además del texto, el motor calcula señales baratas y útiles con FFmpeg:) Tj
+T* (- **Silencios** -> candidatos a eliminar \(`maxSilence` del perfil\).) Tj
+T* (- **Picos de volumen \(RMS\)** -> clave para deporte y momentos de energía.) Tj
+T* (- **Duración de pausas** -> ritmo/pace.) Tj
+T* () Tj
+T* (Esto mejora los cortes incluso cuando el habla es escasa \(ej. video de acción deportiva\).) Tj
+T* () Tj
+T* (## Costos \(referencia para el modo API\)) Tj
+T* () Tj
+T* (| Componente | Local | API |) Tj
+T* (|------------|-------|-----|) Tj
+T* (| Transcripción | Gratis \(usa tu CPU/GPU\) | ~costo por minuto de audio |) Tj
+T* (| Análisis LLM | Gratis \(modelo local\) | ~costo por tokens |) Tj
+T* () Tj
+T* (> Los precios exactos de API se confirman al momento de implementar, ya que cambian. La ) Tj
+T* (herramienta **muestra una estimación** antes de usar el modo API.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 06 · Instalación \(Mac y Windows\)) Tj
+T* () Tj
+T* (> Esta guía se completará cuando exista el primer paquete instalable. Aquí queda el **plan de ) Tj
+T* (instalación** y los requisitos, para que sepamos a dónde vamos.) Tj
+T* () Tj
+T* (## Requisitos) Tj
+T* () Tj
+T* (| Requisito | Detalle |) Tj
+T* (|-----------|---------|) Tj
+T* (| **Premiere Pro** | 26.3.2 o superior \(Premiere 2026, con soporte UXP\) |) Tj
+T* (| **Sistema** | macOS 13+ o Windows 10/11 \(64-bit\) |) Tj
+T* (| **Espacio** | ~1-3 GB si se usa transcripción local \(modelos\) |) Tj
+T* (| **Internet** | Solo necesario para el modo API |) Tj
+T* (| **API key** | Solo si se usa transcripción/análisis por API |) Tj
+T* () Tj
+T* (## Formato de entrega) Tj
+T* () Tj
+T* (El panel UXP se empaqueta como un archivo **`.ccx`** \(Creative Cloud Extension / UXP\), que se ) Tj
+T* (instala con **doble clic** vía el instalador de Adobe. Los binarios del motor \(FFmpeg, y ) Tj
+T* (opcionalmente Whisper\) van embebidos o se instalan en el primer arranque.) Tj
+T* () Tj
+T* (## Instalación - macOS \(plan\)) Tj
+T* () Tj
+T* (1. Cerrar Premiere Pro.) Tj
+T* (2. Doble clic en `CorteIA.ccx` -> se instala vía Creative Cloud / UXP Developer Tool.) Tj
+T* (3. \(Modo local\) Ejecutar el script de preparación que instala FFmpeg + modelo Whisper en la ) Tj
+T* (carpeta de la app.) Tj
+T* (4. Abrir Premiere -> **Ventana -> Extensiones -> CorteIA**.) Tj
+T* () Tj
+T* (## Instalación - Windows \(plan\)) Tj
+T* () Tj
+T* (1. Cerrar Premiere Pro.) Tj
+T* (2. Doble clic en `CorteIA.ccx` -> se instala.) Tj
+T* (3. \(Modo local\) Ejecutar `setup.bat` que instala FFmpeg + modelo Whisper.) Tj
+T* (4. Abrir Premiere -> **Ventana -> Extensiones -> CorteIA**.) Tj
+T* () Tj
+T* (## Modo desarrollador \(para pruebas mientras construimos\)) Tj
+T* () Tj
+T* (Durante el desarrollo se usa **UXP Developer Tool** \(UDT\) de Adobe para cargar el panel sin ) Tj
+T* (empaquetar:) Tj
+ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 25 0 R >>
+endobj
+27 0 obj
+<< /Length 2970 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+() Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    A[Código del panel] --> B[UXP Developer Tool]) Tj
+T* (    B -->|Load / Watch| C[Premiere Pro 26.3.2]) Tj
+T* (    C --> D[Panel visible para probar]) Tj
+T* (```) Tj
+T* () Tj
+T* (1. Instalar **UXP Developer Tool** \(gratis, desde Creative Cloud\).) Tj
+T* (2. "Add Plugin" -> apuntar al `manifest.json` del proyecto.) Tj
+T* (3. "Load" -> el panel aparece en Premiere.) Tj
+T* (4. "Watch" -> recarga automática al cambiar el código.) Tj
+T* () Tj
+T* (## Configuración inicial \(primer arranque\)) Tj
+T* () Tj
+T* (- Elegir modo de transcripción por defecto \(local / API\).) Tj
+T* (- Si es API: pegar la **API key** \(se guarda de forma segura, no en texto plano en el proyecto\).) Tj
+T* (- \(Opcional\) Descargar el modelo local recomendado.) Tj
+T* () Tj
+T* (## Solución de problemas \(se ampliará\)) Tj
+T* () Tj
+T* (| Síntoma | Posible causa | Acción |) Tj
+T* (|---------|---------------|--------|) Tj
+T* (| El panel no aparece | Premiere < 26 o UXP no habilitado | Actualizar Premiere |) Tj
+T* (| "FFmpeg no encontrado" | Motor local no instalado | Correr script de setup |) Tj
+T* (| Transcripción muy lenta | Modelo local grande en CPU | Usar modelo pequeño o modo API |) Tj
+T* (| Error de API key | Key inválida/expirada | Regenerar y volver a pegar |) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 07 · Roadmap y fases) Tj
+T* () Tj
+T* (Construcción por hitos, del más básico al más completo. Cada fase entrega algo **probable** en ) Tj
+T* (tu Premiere.) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    F0[Fase 0<br/>Documentación] --> F1[Fase 1<br/>Panel + UI]) Tj
+T* (    F1 --> F2[Fase 2<br/>Motor audio/texto]) Tj
+T* (    F2 --> F3[Fase 3<br/>Cortes en timeline]) Tj
+T* (    F3 --> F4[Fase 4<br/>Análisis visual]) Tj
+T* (    F4 --> F5[Fase 5<br/>Estructura narrativa]) Tj
+T* (    F5 --> F6[Fase 6<br/>Perfiles completos]) Tj
+T* (    F6 --> F7[Fase 7<br/>Empaquetado Mac/Win]) Tj
+T* (```) Tj
+T* () Tj
+T* (## Fase 0 - Documentación [OK] \(actual\)) Tj
+T* (- Visión, arquitectura, perfiles, UX, transcripción, instalación.) Tj
+T* (- **Entregable:** este set de documentos.) Tj
+T* (- **Cierre:** tu aprobación del diseño.) Tj
+T* () Tj
+T* (## Fase 1 - Panel UXP + interfaz) Tj
+T* (- Proyecto UXP base con `manifest.json` para Premiere 26.3.2.) Tj
+T* (- UI: elegir carpeta, tipo de video, idioma, modo transcripción, botón Iniciar.) Tj
+T* (- Se carga en Premiere vía UXP Developer Tool.) Tj
+T* (- **Entregable:** panel visible y navegable \(aún sin procesar\).) Tj
+T* (- **Cómo lo pruebas:** lo cargas en tu Premiere y ves la interfaz.) Tj
+T* () Tj
+T* (## Fase 2 - Motor de análisis) Tj
+T* (- Lectura de la carpeta + extracción de audio \(FFmpeg\).) Tj
+T* (- Transcripción local **y** por API \(elegible\).) Tj
+T* (- Análisis IA con un primer perfil.) Tj
+T* (- Genera el JSON de cortes \(aún sin tocar el timeline\).) Tj
+T* (- **Entregable:** de una carpeta -> archivo de cortes correcto.) Tj
+ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 27 0 R >>
+endobj
+29 0 obj
+<< /Length 3789 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(- **Cómo lo pruebas:** ves el JSON de cortes y la lista en el panel.) Tj
+T* () Tj
+T* (## Fase 3 - Construcción de cortes en el timeline) Tj
+T* (- Con `@adobe/premierepro`: importar clips + crear secuencia + insertar cortes.) Tj
+T* (- Paso de "Revisar cortes" \(aprobar antes de construir\).) Tj
+T* (- **Entregable:** de carpeta -> secuencia editada en Premiere.) Tj
+T* (- **Cómo lo pruebas:** flujo completo end-to-end con material real.) Tj
+T* () Tj
+T* (## Fase 4 - Análisis visual \(frame a frame\)) Tj
+T* (- FFmpeg: detección de escenas + muestreo de frames.) Tj
+T* (- Modelo de visión \(local/API\) puntúa cada frame \(cara, nitidez, texto, energía\).) Tj
+T* (- Fusión de score audio + visión -> cortes más limpios y mejor gancho visual.) Tj
+T* (- **Entregable:** cortes mejorados con criterio visual; elección del mejor frame de apertura.) Tj
+T* (- Detalle: [09 · Análisis visual]\(./09-analisis-visual.md\).) Tj
+T* () Tj
+T* (## Fase 5 - Estructura narrativa \(Hook -> Gancho -> Cuerpo -> CTA\)) Tj
+T* (- Clasificador de rol por segmento según el perfil.) Tj
+T* (- Montaje ordenado por estructura + marcadores de sección en el timeline.) Tj
+T* (- **Entregable:** secuencia estructurada con marcadores [H][G][C][CTA].) Tj
+T* (- Detalle: [10 · Estructura narrativa]\(./10-estructura-narrativa.md\).) Tj
+T* () Tj
+T* (## Fase 6 - Perfiles completos + señales de audio) Tj
+T* (- Todos los perfiles \(reel, política, deporte, ecommerce, entrevista\).) Tj
+T* (- Silencios + picos de volumen integrados al scoring.) Tj
+T* (- Pesos audio/visión por perfil + opciones avanzadas \(duración objetivo, umbrales\).) Tj
+T* (- **Entregable:** resultados afinados por tipo de contenido.) Tj
+T* () Tj
+T* (## Fase 7 - Empaquetado e instalación) Tj
+T* (- Empaquetar `.ccx` para macOS y Windows.) Tj
+T* (- Scripts de setup del motor local por SO.) Tj
+T* (- Guía de instalación final + solución de problemas.) Tj
+T* (- **Entregable:** instalable de doble clic en ambos sistemas.) Tj
+T* () Tj
+T* (## Mejoras futuras \(post-v1, ideas\)) Tj
+T* (- Reconocimiento de escenas visuales \(no solo audio\).) Tj
+T* (- Detección de caras / hablantes \(diarización\).) Tj
+T* (- Plantillas de exportación directa a redes.) Tj
+T* (- Subtítulos automáticos incrustados.) Tj
+T* (- Aprender de tus ediciones \(ajustar el scoring a tu estilo\).) Tj
+T* () Tj
+T* (## Nota importante sobre pruebas) Tj
+T* (Yo puedo **construir y entregar** todo el código aquí, pero **Premiere corre en tu ) Tj
+T* (Mac/Windows**, no en este entorno. Por eso cada fase está diseñada para que **tú la pruebes** y ) Tj
+T* (ajustemos con lo que veas en pantalla. Es un desarrollo **colaborativo e iterativo**.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 08 · Glosario) Tj
+T* () Tj
+T* (Términos técnicos explicados en simple.) Tj
+T* () Tj
+T* (| Término | Qué significa |) Tj
+T* (|---------|---------------|) Tj
+T* (| **UXP** | *Unified Extensibility Platform.* La tecnología oficial de Adobe \(desde Premiere ) Tj
+T* (2026\) para crear paneles/plugins con HTML, CSS y JavaScript. Reemplaza a CEP. |) Tj
+T* (| **CEP** | *Common Extensibility Platform.* La tecnología **antigua** de paneles de Adobe. ) Tj
+T* (Quedó obsoleta en Premiere 2026; por eso NO la usamos. |) Tj
+T* (| **Panel / Extensión** | La ventana de la herramienta dentro de Premiere \(como el panel de ) Tj
+T* (Efectos o Proyecto\). |) Tj
+T* (| **`@adobe/premierepro`** | Librería oficial de Adobe \(vía npm\) que permite al panel controlar ) Tj
+T* (Premiere: crear secuencias, importar clips, insertar cortes. |) Tj
+T* (| **`manifest.json`** | Archivo que describe el plugin UXP \(nombre, permisos, dónde aparece\). Es) Tj
+T* ( la "identidad" del panel. |) Tj
+T* (| **FFmpeg** | Herramienta libre para procesar audio/video. Aquí extrae el audio y mide ) Tj
+ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 29 0 R >>
+endobj
+31 0 obj
+<< /Length 4138 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(silencios/volumen. |) Tj
+T* (| **Whisper** | Modelo de IA \(open source, de OpenAI\) que convierte voz en texto. Es la opción ) Tj
+T* (de transcripción **local y gratis**. |) Tj
+T* (| **Transcripción** | Convertir el audio hablado en texto, con marcas de tiempo \(cuándo se dice ) Tj
+T* (cada cosa\). |) Tj
+T* (| **LLM** | *Large Language Model.* Modelo de IA que "entiende" texto. Aquí decide qué segmentos) Tj
+T* ( son importantes según el tipo de video. |) Tj
+T* (| **Perfil \(de video\)** | Conjunto de reglas de corte para un tipo de contenido \(reel, política,) Tj
+T* ( deporte...\). Editable sin programar. |) Tj
+T* (| **Scoring / puntaje** | Nota de 0 a 1 que la IA da a cada segmento según su importancia. |) Tj
+T* (| **Segmento** | Un trozo de video entre un tiempo de inicio y uno de fin. |) Tj
+T* (| **Corte** | Un segmento que se decide **conservar** en la edición final. |) Tj
+T* (| **EDL** | *Edit Decision List.* Lista de decisiones de edición \(qué clip, desde dónde, hasta ) Tj
+T* (dónde\). Es el "plano" de la secuencia. |) Tj
+T* (| **Rough cut** | Primer montaje aproximado. Lo que entrega CorteIA para que tú lo refines. |) Tj
+T* (| **Timeline / Secuencia** | La línea de tiempo de Premiere donde se arma la edición. |) Tj
+T* (| **`.ccx`** | Formato de archivo para instalar extensiones de Adobe con doble clic. |) Tj
+T* (| **UXP Developer Tool \(UDT\)** | App de Adobe para cargar y probar el panel durante el ) Tj
+T* (desarrollo, sin empaquetarlo. |) Tj
+T* (| **API \(modo de transcripción/IA\)** | Usar un servicio externo por internet \(más ) Tj
+T* (rápido/preciso, con costo y API key\), en vez de correr todo local. |) Tj
+T* (| **API key** | Clave secreta que autoriza el uso de un servicio por API. |) Tj
+T* (| **Diarización** | Distinguir quién habla \(hablante 1, hablante 2...\). Idea para fases futuras.) Tj
+T* ( |) Tj
+T* (| **RMS / picos de audio** | Medida del volumen. Útil para detectar momentos de acción o energía) Tj
+T* ( \(ej. deporte\). |) Tj
+T* (| **Modelo de visión \(multimodal\)** | IA que "mira" imágenes y las describe/puntúa. Aquí evalúa ) Tj
+T* (la calidad e impacto de cada frame. |) Tj
+T* (| **Detección de escenas** | Encontrar dónde cambia el plano en un video. FFmpeg lo hace; sirve ) Tj
+T* (para cortar en límites naturales. |) Tj
+T* (| **`exportFramePng`** | Función de Premiere \(UXP\) que exporta un frame concreto a PNG. Se usa ) Tj
+T* (para thumbnails/previews. |) Tj
+T* (| **OCR** | *Optical Character Recognition.* Leer el texto que aparece en pantalla \(rótulos, ) Tj
+T* (precios, CTAs\). |) Tj
+T* (| **Hook visual** | El frame/plano de apertura que "frena el scroll" en los primeros segundos. |) Tj
+T* (| **CTA** | *Call To Action.* Llamado a la acción \(suscríbete, compra, link abajo\). |) Tj
+T* (| **FCPXML / AAF / OTIO** | Formatos de intercambio de edición. Premiere UXP puede convertirlos;) Tj
+T* ( posible plan B para generar el timeline. |) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 09 · Análisis visual \(frame a frame\)) Tj
+T* () Tj
+T* (Hasta ahora los cortes se decidían por **audio + texto**. Este documento añade el **ojo** de la ) Tj
+T* (herramienta: analizar la **imagen**, frame a frame, para elegir mejores cortes, el mejor ) Tj
+T* (**gancho visual** y estructurar el video.) Tj
+T* () Tj
+T* (## Por qué análisis visual) Tj
+T* () Tj
+T* (El audio dice *qué se dice*; la imagen dice *qué se ve*. Muchos aciertos de edición son ) Tj
+T* (puramente visuales:) Tj
+T* (- El **primer frame** que engancha \(un rostro, un movimiento, un producto\).) Tj
+T* (- Cortar donde hay **cambio de plano** \(no a mitad de un movimiento\).) Tj
+T* (- Evitar frames **borrosos, oscuros o con ojos cerrados**.) Tj
+T* (- Detectar **texto en pantalla**, **caras**, **acción/movimiento**.) Tj
+T* () Tj
+T* (## ¿Cómo se "ven" los videos? Dos caminos) Tj
+T* () Tj
+T* (### Camino A - FFmpeg + modelo de visión \(recomendado, a escala\)) Tj
+T* (El motor externo extrae frames y los analiza con un **modelo multimodal \(visión\)**.) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph TD) Tj
+T* (    A[Video] --> B[FFmpeg: detección de escenas<br/>select gt scene 0.4]) Tj
+ET
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 31 0 R >>
+endobj
+33 0 obj
+<< /Length 3641 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(    A --> C[FFmpeg: muestreo de frames<br/>ej. 1-2 por segundo + en cada corte]) Tj
+T* (    B --> D[Frames candidatos .jpg]) Tj
+T* (    C --> D) Tj
+T* (    D --> E[Modelo de visión<br/>puntúa cada frame]) Tj
+T* (    E --> F[Score visual + etiquetas<br/>cara, texto, nitidez, energía]) Tj
+T* (```) Tj
+T* () Tj
+T* (- **Detección de escenas:** FFmpeg marca dónde cambia el plano -> cortes naturales.) Tj
+T* (- **Muestreo:** 1-2 frames/seg \(y frames en los bordes de cada segmento candidato\).) Tj
+T* (- **Visión:** cada frame recibe un **score visual** + etiquetas \(cara, sonrisa, texto, nitidez, ) Tj
+T* (movimiento, composición\). Local o por API, igual que la transcripción.) Tj
+T* () Tj
+T* (### Camino B - `exportFramePng` de Premiere \(nativo, puntual\)) Tj
+T* (Premiere \(UXP\) puede exportar un frame concreto a PNG \(`exportFramePng`\). Útil para ) Tj
+T* (**thumbnails** o para renderizar el frame exacto de un corte ya decidido, pero **no** para ) Tj
+T* (escanear miles de frames \(sería lento\). Se usa como complemento, no como motor principal.) Tj
+T* () Tj
+T* (> **Decisión:** motor principal = **FFmpeg + visión** \(Camino A\). `exportFramePng` = complemento) Tj
+T* ( para previews/thumbnails \(Camino B\).) Tj
+T* () Tj
+T* (## Qué mide el análisis visual \(por frame o por plano\)) Tj
+T* () Tj
+T* (| Señal | Para qué sirve |) Tj
+T* (|-------|----------------|) Tj
+T* (| **Nitidez / enfoque** | Descartar frames borrosos como punto de corte |) Tj
+T* (| **Brillo / exposición** | Evitar frames muy oscuros/quemados |) Tj
+T* (| **Caras y expresión** | Priorizar planos con rostro/mirada/sonrisa \(enganchan\) |) Tj
+T* (| **Movimiento / energía** | Detectar acción \(clave en deporte/reels\) |) Tj
+T* (| **Texto en pantalla \(OCR\)** | Reconocer rótulos, precios, CTAs visuales |) Tj
+T* (| **Composición** | Preferir encuadres limpios para hooks/portadas |) Tj
+T* (| **Cambio de plano \(escena\)** | Cortar en límites naturales, no a media acción |) Tj
+T* () Tj
+T* (## Cómo se combinan audio + visión) Tj
+T* () Tj
+T* (El puntaje final de cada segmento mezcla ambas señales, con pesos que dependen del **perfil del ) Tj
+T* (tipo de video**:) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    A[Score de audio/texto<br/>relevancia de lo dicho] --> C[Score combinado]) Tj
+T* (    B[Score visual<br/>calidad e impacto de imagen] --> C) Tj
+T* (    D[Perfil del tipo de video<br/>define los pesos] --> C) Tj
+T* (    C --> E[Mejores cortes<br/>+ mejor frame de entrada/salida]) Tj
+T* (```) Tj
+T* () Tj
+T* (Ejemplos de peso por perfil:) Tj
+T* (- **Reel / Ecommerce:** visión pesa **alto** \(lo visual vende\).) Tj
+T* (- **Política / Entrevista:** audio/texto pesa **alto** \(importa lo que se dice\).) Tj
+T* (- **Deporte:** visión + picos de audio pesan **alto** \(la acción\).) Tj
+T* () Tj
+T* (## Mejora concreta de los cortes gracias a la visión) Tj
+T* () Tj
+T* (1. **Ajuste fino del punto de corte:** si el audio sugiere cortar en el segundo 12.4 pero ahí ) Tj
+T* (hay un frame borroso o a mitad de un gesto, la visión desplaza el corte al frame limpio más ) Tj
+T* (cercano \(ej. 12.2 o 12.6\).) Tj
+T* (2. **Elección del mejor gancho visual:** entre varios inicios posibles, elige el frame de ) Tj
+T* (apertura con más impacto \(cara, movimiento, color, texto\).) Tj
+T* (3. **Evitar planos malos:** descarta segmentos con imagen defectuosa aunque el audio sea bueno.) Tj
+T* (4. **Respetar límites de plano:** corta en cambios de escena para que no se sienta "brusco".) Tj
+T* () Tj
+T* (## Coste y rendimiento) Tj
+T* () Tj
+T* (| Enfoque | Coste | Velocidad |) Tj
+T* (|---------|-------|-----------|) Tj
+ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 33 0 R >>
+endobj
+35 0 obj
+<< /Length 3094 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(| Detección de escenas \(FFmpeg\) | Gratis | Rápido |) Tj
+T* (| Visión local \(modelo abierto\) | Gratis | Depende del hardware |) Tj
+T* (| Visión por API \(multimodal\) | Por imagen/token | Rápido |) Tj
+T* () Tj
+T* (**Optimización:** no se analizan *todos* los frames. Se analizan \(a\) los **bordes de cada ) Tj
+T* (segmento candidato** y \(b\) un **muestreo** dentro de cada plano. Esto reduce el coste ) Tj
+T* (enormemente sin perder calidad de decisión.) Tj
+T* () Tj
+T* (> Ver cómo esto alimenta la estructura **Hook -> Gancho -> Cuerpo -> CTA** en [10 · Estructura ) Tj
+T* (narrativa]\(./10-estructura-narrativa.md\).) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 10 · Estructura narrativa: Hook -> Gancho -> Cuerpo -> CTA) Tj
+T* () Tj
+T* (Además de elegir buenos cortes, CorteIA **organiza** el video en una estructura que retiene y ) Tj
+T* (convierte. Especialmente útil para reels, ecommerce y social.) Tj
+T* () Tj
+T* (## Las 4 partes) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    H[" Hook visual<br/>0-3 s"] --> G[" Gancho<br/>3-8 s"]) Tj
+T* (    G --> C[" Cuerpo<br/>el contenido"]) Tj
+T* (    C --> T["[OK] CTA<br/>cierre / acción"]) Tj
+T* (```) Tj
+T* () Tj
+T* (| Parte | Objetivo | Cómo la detecta CorteIA |) Tj
+T* (|-------|----------|--------------------------|) Tj
+T* (| ** Hook visual** | Frenar el scroll en los primeros segundos | Mejor **frame de apertura** ) Tj
+T* (\(visión\) + primer segmento de alta energía \(audio\) |) Tj
+T* (| ** Gancho** | Prometer valor / crear curiosidad | Frase de promesa o pregunta \(texto\) apoyada ) Tj
+T* (por imagen fuerte |) Tj
+T* (| ** Cuerpo** | Entregar el contenido/mensaje | Segmentos con mayor score de relevancia según el) Tj
+T* ( perfil |) Tj
+T* (| **[OK] CTA** | Llamado a la acción / cierre | Frase de cierre o llamado \("suscríbete", ) Tj
+T* ("compra", "link abajo"\) + texto en pantalla |) Tj
+T* () Tj
+T* (> Nota: **"Hook visual"** = el impacto de imagen inicial. **"Gancho"** = la promesa ) Tj
+T* (verbal/conceptual que sigue. Se distinguen a propósito: uno frena el scroll, el otro convence de) Tj
+T* ( quedarse.) Tj
+T* () Tj
+T* (## Cómo se arma la estructura) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph TD) Tj
+T* (    A[Segmentos puntuados<br/>audio + visión] --> B{Clasificador de rol<br/>según perfil}) Tj
+T* (    B --> H[Candidatos a Hook]) Tj
+T* (    B --> G[Candidatos a Gancho]) Tj
+T* (    B --> C[Candidatos a Cuerpo]) Tj
+T* (    B --> T[Candidatos a CTA]) Tj
+T* (    H --> M[Montaje ordenado]) Tj
+T* (    G --> M) Tj
+T* (    C --> M) Tj
+T* (    T --> M) Tj
+T* (    M --> S[Secuencia en Premiere<br/>con marcadores de sección]) Tj
+T* (```) Tj
+T* () Tj
+T* (1. Cada segmento ya tiene score de **audio** y **visión**.) Tj
+T* (2. Un paso de IA **clasifica el rol** de cada segmento \(hook/gancho/cuerpo/CTA\) usando el ) Tj
+T* (`scoringPrompt` del perfil.) Tj
+T* (3. Se **selecciona el mejor** de cada rol \(el hook con mejor frame de apertura, el CTA más ) Tj
+T* (claro, etc.\).) Tj
+T* (4. Se **ordena** el montaje: hook primero, CTA al final, cuerpo en medio con ritmo del perfil.) Tj
+ET
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 35 0 R >>
+endobj
+37 0 obj
+<< /Length 2664 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(5. En Premiere se añaden **marcadores de sección** \(Hook / Gancho / Cuerpo / CTA\) para que sepas) Tj
+T* ( qué es cada bloque y lo ajustes fácil.) Tj
+T* () Tj
+T* (## Ejemplo de salida \(JSON de cortes con roles\)) Tj
+T* () Tj
+T* (```json) Tj
+T* ({) Tj
+T* (  "sequenceName": "CorteIA - Reel - 2026-08-19",) Tj
+T* (  "profile": "reel",) Tj
+T* (  "structure": "hook-gancho-cuerpo-cta",) Tj
+T* (  "sections": [) Tj
+T* (    {) Tj
+T* (      "role": "hook",) Tj
+T* (      "clip": "toma01.mp4", "in": 12.2, "out": 14.0,) Tj
+T* (      "audioScore": 0.71, "visualScore": 0.94,) Tj
+T* (      "reason": "frame de apertura con rostro y movimiento; corta el scroll") Tj
+T* (    },) Tj
+T* (    {) Tj
+T* (      "role": "gancho",) Tj
+T* (      "clip": "toma01.mp4", "in": 14.0, "out": 18.5,) Tj
+T* (      "audioScore": 0.88, "visualScore": 0.66,) Tj
+T* (      "reason": "promesa clara: 'te muestro cómo en 2 minutos'") Tj
+T* (    },) Tj
+T* (    {) Tj
+T* (      "role": "cuerpo",) Tj
+T* (      "clip": "toma02.mp4", "in": 3.5, "out": 22.0,) Tj
+T* (      "audioScore": 0.83, "visualScore": 0.72,) Tj
+T* (      "reason": "explicación central del contenido") Tj
+T* (    },) Tj
+T* (    {) Tj
+T* (      "role": "cta",) Tj
+T* (      "clip": "toma03.mp4", "in": 40.0, "out": 45.0,) Tj
+T* (      "audioScore": 0.79, "visualScore": 0.81,) Tj
+T* (      "reason": "llamado a la acción + texto en pantalla 'link abajo'") Tj
+T* (    }) Tj
+T* (  ]) Tj
+T* (}) Tj
+T* (```) Tj
+T* () Tj
+T* (## Cómo cada perfil usa la estructura) Tj
+T* () Tj
+T* (| Perfil | Estructura |) Tj
+T* (|--------|-----------|) Tj
+T* (| **Reel / Social** | Estructura completa, hook agresivo, CTA obligatorio |) Tj
+T* (| **Ecommerce** | Hook \(producto\) -> beneficios \(cuerpo\) -> CTA de compra |) Tj
+T* (| **Deporte** | Hook = mejor jugada; cuerpo = secuencia de acción; CTA opcional |) Tj
+T* (| **Política** | Hook = declaración fuerte; cuerpo = argumento; sin CTA comercial |) Tj
+T* (| **Entrevista** | Hook = mejor frase; cuerpo = conversación; cierre reflexivo |) Tj
+T* () Tj
+T* (> Los perfiles pueden **activar o desactivar** la estructura. Un documental largo quizá no ) Tj
+T* (quiera CTA; un reel siempre sí.) Tj
+T* () Tj
+T* (## En el timeline) Tj
+T* () Tj
+T* (Al terminar, la secuencia trae **marcadores de color por sección**:) Tj
+T* (- [H] Hook · [G] Gancho · [C] Cuerpo · [CTA] CTA) Tj
+T* () Tj
+T* (Así ves de un vistazo la anatomía del video y reordenas/ajustas con un clic.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 11 · Referencias técnicas \(hallazgos verificados\)) Tj
+T* () Tj
+T* (Notas de investigación sobre la extensibilidad de Premiere Pro 26.x, para fundamentar las ) Tj
+ET
+endstream
+endobj
+38 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 37 0 R >>
+endobj
+39 0 obj
+<< /Length 3461 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(decisiones de construcción. Fecha de investigación: **2026-08-19**.) Tj
+T* () Tj
+T* (## UXP es el estándar \(CEP obsoleto\)) Tj
+T* () Tj
+T* (- Desde **Premiere 25.6**, CEP quedó **superado por UXP**. Adobe mantiene ambos ~1 año más y ) Tj
+T* (luego **elimina CEP**.) Tj
+T* (- Recomendación oficial: *"If you are starting new development, start in UXP."*) Tj
+T* (- **Conclusión para CorteIA:** construir en **UXP**.) Tj
+T* () Tj
+T* (## Paquete y estructura del plugin UXP) Tj
+T* () Tj
+T* (- Paquete oficial: **`@adobe/premierepro`** \(npm\), con **tipos TypeScript**. Versión de ) Tj
+T* (referencia en samples: `^26.5.0-beta.73`.) Tj
+T* (- Estructura mínima de un plugin:) Tj
+T* (  - `manifest.json` - identidad, permisos, dónde aparece el panel.) Tj
+T* (  - `index.html` - interfaz \(usa componentes Spectrum `sp-*`: `sp-button`, `sp-body`, etc.\).) Tj
+T* (  - `index.js` / TypeScript - lógica.) Tj
+T* (- Flujo de desarrollo: **UXP Developer Tool** \(UDT\) -> Add Plugin -> Load -> Watch \(hot-reload\).) Tj
+T* (- **Importante:** en UXP las llamadas a la API son **asíncronas** y **no bloquean** la UI \(en ) Tj
+T* (CEP/ExtendScript eran síncronas y congelaban Premiere\).) Tj
+T* () Tj
+T* (## APIs UXP relevantes \(del sample oficial `premiere-api`\)) Tj
+T* () Tj
+T* (El panel de referencia `premiere-api` ejercita:) Tj
+T* (- **Projects** y **Sequences** \(crear, leer\).) Tj
+T* (- **Timeline:** insertar/overwrite/append de clips; **in/out points**.) Tj
+T* (- **Markers** \(marcadores - los usaremos para las secciones Hook/Gancho/Cuerpo/CTA\).) Tj
+T* (- **Metadata** de clips.) Tj
+T* (- **Effects, transitions, keyframes**.) Tj
+T* (- **Source monitor**.) Tj
+T* (- **Import/Export** y **Encoder**.) Tj
+T* (- **Transcripts** \(transcripciones/subtítulos - Premiere tiene STT nativo, opción extra de ) Tj
+T* (transcripción\).) Tj
+T* (- Conversión de proyecto: **AAF, FCPXML, OTIO** \(¡útil! podríamos generar FCPXML como plan B ) Tj
+T* (para el timeline\).) Tj
+T* () Tj
+T* (## Frames / imagen) Tj
+T* () Tj
+T* (- Premiere expone **`exportFramePng`** \(desde 25.3+\) para exportar un frame a PNG. Bien para ) Tj
+T* (**thumbnails/previews**, no para escanear miles de frames.) Tj
+T* (- Para análisis visual a escala -> **FFmpeg** \(detección de escenas + muestreo\) + **modelo de ) Tj
+T* (visión**. Ver [09 · Análisis visual]\(./09-analisis-visual.md\).) Tj
+T* () Tj
+T* (## Permisos del manifest que necesitaremos) Tj
+T* () Tj
+T* (| Permiso | Para qué |) Tj
+T* (|---------|----------|) Tj
+T* (| `localFileSystem` | Leer la carpeta de videos, escribir temporales |) Tj
+T* (| `launchProcess` | Ejecutar FFmpeg / Whisper / motor local |) Tj
+T* (| `network` | Modo API \(transcripción / IA / visión\) |) Tj
+T* () Tj
+T* (> El sample `oauth-workflow-sample` demuestra `network` + `launchProcess` y un broker Node.js - ) Tj
+T* (patrón reutilizable para llamadas externas seguras.) Tj
+T* () Tj
+T* (## Sobre ukramedia \(recurso de aprendizaje\)) Tj
+T* () Tj
+T* (- Canal de **Sergei Prokhnevskiy** \(ukramedia\). Fuerte en **expresiones de After Effects** y en ) Tj
+T* (construir **extensiones CEP** \(puente **CSInterface** + **ExtendScript**\).) Tj
+T* (- Es material **era-CEP**: los conceptos \(panel HTML/JS  host\) son válidos, pero la ) Tj
+T* (implementación concreta \(CSInterface, ExtendScript síncrono\) **no aplica a UXP**. Se usa como ) Tj
+T* (referencia conceptual, no como código a copiar.) Tj
+T* () Tj
+T* (## Fuentes) Tj
+T* () Tj
+ET
+endstream
+endobj
+40 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 39 0 R >>
+endobj
+41 0 obj
+<< /Length 3827 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(- UXP Premiere plugins \(Adobe\): https://developer.adobe.com/premiere-pro/uxp/plugins/) Tj
+T* (- Referencia de API UXP: https://developer.adobe.com/premiere-pro/uxp/ppro-reference/) Tj
+T* (- Samples UXP oficiales: https://github.com/AdobeDocs/uxp-premiere-pro-samples) Tj
+T* (- PProPanel \(CEP, legacy\): https://github.com/Adobe-CEP/Samples/blob/master/PProPanel/ReadMe.md) Tj
+T* (- UXP en Premiere 2026 \(Hyper Brew\): https://hyperbrew.co/blog/uxp-plugins-in-premiere-2026/) Tj
+T* (- Building Adobe Extensions \(Hyper Brew\): https://hyperbrew.co/blog/building-adobe-extensions/) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 12 · Funciones "plus" \(valor agregado\)) Tj
+T* () Tj
+T* (Más allá de lo esencial \(elegir carpeta, duración, formato, tipo -> cortar y organizar\), estas ) Tj
+T* (funciones hacen a CorteIA notablemente más útil. Se priorizan por fase \(ver [07 · ) Tj
+T* (Roadmap]\(./07-roadmap.md\)\).) Tj
+T* () Tj
+T* (## Incluidas en el plan v1) Tj
+T* () Tj
+T* (| Función | Qué aporta | Se apoya en |) Tj
+T* (|---------|-----------|-------------|) Tj
+T* (|  **Reencuadre automático** al formato \(9:16, 1:1...\) | Adapta material horizontal a vertical ) Tj
+T* (manteniendo al sujeto centrado | Análisis visual \(caras/movimiento\) |) Tj
+T* (|  **Ajuste a duración objetivo** | Entrega el video en la duración pedida priorizando lo mejor ) Tj
+T* (| Planificador + scoring |) Tj
+T* (|  **Estructura Hook -> Gancho -> Cuerpo -> CTA** | Montaje que retiene y convierte | [10 · ) Tj
+T* (Estructura]\(./10-estructura-narrativa.md\) |) Tj
+T* (|  **Marcadores de sección** en el timeline | Ves la anatomía del video \([H][G][C][CTA]\) y ) Tj
+T* (editas rápido | API de markers UXP |) Tj
+T* (|  **Eliminación de silencios/muletillas** | Quita tiempos muertos automáticamente | FFmpeg + ) Tj
+T* (transcripción |) Tj
+T* (|  **Mejor frame de apertura \(hook visual\)** | Elige el arranque que frena el scroll | Análisis ) Tj
+T* (visual |) Tj
+T* (|  **Resumen del proceso** | Cuántos cortes, duración, qué se descartó | Reporte final |) Tj
+T* (| [OK] **Revisar antes de construir** | Apruebas/descartas cortes antes del montaje | Paso ) Tj
+T* (opcional en UI |) Tj
+T* () Tj
+T* (## Extras de alto valor \(recomendados, fase posterior\)) Tj
+T* () Tj
+T* (| Función | Qué aporta |) Tj
+T* (|---------|-----------|) Tj
+T* (|  **Subtítulos automáticos** | Genera subtítulos desde la transcripción \(quemados o como pista ) Tj
+T* (editable\). Clave para social \(se ve sin sonido\) |) Tj
+T* (|  **Normalización de audio \(loudness\)** | Nivela el volumen para un sonido consistente entre ) Tj
+T* (clips |) Tj
+T* (|  **Sugerencia de portada/thumbnail** | Propone el mejor frame como miniatura ) Tj
+T* (\(`exportFramePng`\) |) Tj
+T* (|  **Multi-formato en un clic** | Genera varias secuencias \(9:16 + 1:1 + 16:9\) del mismo montaje) Tj
+T* ( |) Tj
+T* (|  **Preajustes del usuario** | Guarda "mi carpeta + mi formato + mi tipo favorito" para repetir) Tj
+T* ( con un clic |) Tj
+T* (|  **Reordenar cortes** \(drag & drop\) en la revisión | Ajuste manual antes de construir |) Tj
+T* (|  **Detección de hablantes \(diarización\)** | Distingue quién habla \(útil en ) Tj
+T* (entrevistas/podcast\) |) Tj
+T* (|  **Sincronía con música/beats** | Alinea cortes al ritmo de una pista \(reels\) |) Tj
+T* (|  **Presets de exportación por plataforma** | Ajustes listos para TikTok/YouTube/Instagram |) Tj
+T* () Tj
+T* (## Ideas exploratorias \(futuro lejano\)) Tj
+T* () Tj
+T* (- **Aprender tu estilo:** ajustar el scoring según qué cortes sueles conservar o descartar.) Tj
+T* (- **B-roll inteligente:** sugerir dónde insertar planos de apoyo.) Tj
+T* (- **Detección de logos/marcas** para anuncios.) Tj
+T* (- **Guiones/hooks sugeridos** por IA a partir del contenido.) Tj
+T* () Tj
+T* (## Principio para priorizar) Tj
+T* () Tj
+ET
+endstream
+endobj
+42 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 41 0 R >>
+endobj
+43 0 obj
+<< /Length 3146 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(> Primero **lo esencial** funcionando de punta a punta \(carpeta -> cortes -> timeline\), luego ) Tj
+T* (los "plus" que multipliquen el ahorro de tiempo sin volver la herramienta frágil. Cada extra se ) Tj
+T* (activa/desactiva para no saturar la interfaz.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 13 · Lenguajes de programación y stack técnico) Tj
+T* () Tj
+T* (## Respuesta directa) Tj
+T* () Tj
+T* (| ¿Se usa? | Lenguaje / tecnología | Para qué |) Tj
+T* (|----------|----------------------|----------|) Tj
+T* (| [OK] **Sí** | **HTML** | Estructura de la interfaz del panel |) Tj
+T* (| [OK] **Sí** | **CSS** | Estilos del panel \(componentes Spectrum `sp-*`\) |) Tj
+T* (| [OK] **Sí** | **JavaScript / TypeScript** | Lógica del panel y control de Premiere ) Tj
+T* (\(`@adobe/premierepro`\) |) Tj
+T* (| [OK] **Sí** | **Node.js** \(JS/TS\) | Motor: orquesta FFmpeg, transcripción, IA |) Tj
+T* (|  **Opcional** | **Python** | Solo si se usa IA **local** \(Whisper, visión\) |) Tj
+T* (|  **Binario** | **FFmpeg** \(C/C++, precompilado\) | Extraer audio, frames, detectar escenas |) Tj
+T* (| [NO] **No** | ~~Java~~ | No aplica al ecosistema de plugins de Adobe |) Tj
+T* (| [NO] **No** | ~~PHP~~ | No aplica \(no hay servidor web tradicional\) |) Tj
+T* () Tj
+T* (## Por qué estos lenguajes) Tj
+T* () Tj
+T* (Los plugins de Premiere 2026 se construyen con **UXP**, que corre **tecnologías web**. Por eso ) Tj
+T* (el panel es **HTML + CSS + JavaScript** \(igual que una página web, pero dentro de Premiere\). ) Tj
+T* (**TypeScript** es JavaScript con tipos: lo usamos porque el paquete oficial `@adobe/premierepro`) Tj
+T* ( trae tipos y evita errores.) Tj
+T* () Tj
+T* (**Java** y **PHP** pertenecen a otros mundos \(apps de escritorio Android/empresa y servidores ) Tj
+T* (web\) y **no** encajan en la extensibilidad de Adobe.) Tj
+T* () Tj
+T* (## El stack por capas) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph TD) Tj
+T* (    subgraph Panel["Panel UXP \(dentro de Premiere\)"]) Tj
+T* (        A["HTML · CSS<br/>interfaz"]) Tj
+T* (        B["JavaScript / TypeScript<br/>lógica + @adobe/premierepro"]) Tj
+T* (    end) Tj
+T* (    subgraph Motor["Motor \(proceso externo\)"]) Tj
+T* (        C["Node.js \(JS/TS\)<br/>orquestador"]) Tj
+T* (        D["FFmpeg \(binario\)<br/>audio · frames · escenas"]) Tj
+T* (        E["Python \(opcional\)<br/>Whisper / visión local"]) Tj
+T* (    end) Tj
+T* (    subgraph Nube["Servicios API \(opcional\)"]) Tj
+T* (        F["Transcripción / IA / visión<br/>vía HTTPS + JSON"]) Tj
+T* (    end) Tj
+T* () Tj
+T* (    A --> B --> C) Tj
+T* (    C --> D) Tj
+T* (    C -->|modo local| E) Tj
+T* (    C -->|modo API| F) Tj
+T* (```) Tj
+T* () Tj
+T* (## Detalle por componente) Tj
+T* () Tj
+T* (### 1. Panel \(UI\) - HTML · CSS · JS/TS) Tj
+T* (- **HTML:** los campos \(carpeta, duración, formato, tipo...\), botones, barra de progreso.) Tj
+T* (- **CSS:** apariencia; se usan componentes **Spectrum** de Adobe \(`sp-button`, `sp-dropdown`, ) Tj
+T* (etc.\) para que se vea nativo.) Tj
+T* (- **JS/TS:** responde a los clics y llama a la API de Premiere para crear la secuencia e ) Tj
+T* (insertar cortes.) Tj
+T* () Tj
+ET
+endstream
+endobj
+44 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 43 0 R >>
+endobj
+45 0 obj
+<< /Length 3172 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(### 2. Puente con Premiere - `@adobe/premierepro`) Tj
+T* (- Paquete oficial \(npm\) en **JS/TS**. Crea secuencias, importa clips, inserta cortes, pone ) Tj
+T* (marcadores. Todo **asíncrono**.) Tj
+T* () Tj
+T* (### 3. Motor de análisis - Node.js \(+ Python opcional\)) Tj
+T* (- **Node.js** coordina todo: lanza FFmpeg, gestiona transcripción y análisis, arma el JSON de ) Tj
+T* (cortes.) Tj
+T* (- **FFmpeg** \(binario, sin programar\): extrae audio y frames, detecta escenas y silencios.) Tj
+T* (- **Python \(opcional\):** solo para IA **local** -`faster-whisper` \(transcripción\) o modelos de ) Tj
+T* (visión-, porque el ecosistema de IA vive en Python.) Tj
+T* (  - *Alternativa sin Python:* **whisper.cpp** \(binario C++\) evita instalar Python para ) Tj
+T* (transcripción local.) Tj
+T* () Tj
+T* (### 4. Servicios API \(opcional\)) Tj
+T* (- Si eliges modo API, el motor hace llamadas **HTTPS con JSON** a servicios de transcripción / ) Tj
+T* (IA / visión. No requiere lenguaje adicional.) Tj
+T* () Tj
+T* (## Herramientas de desarrollo) Tj
+T* () Tj
+T* (| Herramienta | Uso |) Tj
+T* (|-------------|-----|) Tj
+T* (| **UXP Developer Tool \(UDT\)** | Cargar y probar el panel en Premiere |) Tj
+T* (| **Node.js + npm** | Instalar dependencias y compilar TypeScript |) Tj
+T* (| **VS Code** | Editor recomendado |) Tj
+T* (| **Git** | Control de versiones del proyecto |) Tj
+T* () Tj
+T* (## Resumen en una frase) Tj
+T* () Tj
+T* (> El corazón es **JavaScript/TypeScript** \(panel + motor con Node.js\), con **HTML/CSS** para la ) Tj
+T* (interfaz y **FFmpeg**; **Python** entra solo si quieres IA local. **Nada de Java ni PHP.**) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 14 · Guía paso a paso con VS Code \(para no-programadores\)) Tj
+T* () Tj
+T* (Esta guía asume que **nunca has programado**. Cada paso está explicado en simple. No tienes que ) Tj
+T* (entender el código: solo instalar unas herramientas, copiar-pegar comandos y hacer clic.) Tj
+T* () Tj
+T* (>  Idea clave: el **código lo escribo yo**. Tú solo preparas tu computadora y ejecutas lo que te) Tj
+T* ( indico. VS Code es como "Word para código": un programa donde se abre el proyecto.) Tj
+T* () Tj
+T* (## Qué vas a instalar \(una sola vez\)) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    A[1 · VS Code<br/>editor] --> B[2 · Node.js<br/>motor de JS]) Tj
+T* (    B --> C[3 · UXP Developer Tool<br/>cargar el panel]) Tj
+T* (    C --> D[4 · Proyecto CorteIA<br/>los archivos]) Tj
+T* (    D --> E[[OK] Listo para probar<br/>en Premiere]) Tj
+T* (```) Tj
+T* () Tj
+T* (| # | Herramienta | Para qué | Dónde |) Tj
+T* (|---|-------------|----------|-------|) Tj
+T* (| 1 | **Visual Studio Code** | Abrir y ver el proyecto | code.visualstudio.com |) Tj
+T* (| 2 | **Node.js \(versión LTS\)** | Instalar librerías y compilar | nodejs.org |) Tj
+T* (| 3 | **UXP Developer Tool** | Meter el panel en Premiere | App de Creative Cloud -> Marketplace) Tj
+T* ( |) Tj
+T* (| 4 | **El proyecto CorteIA** | Los archivos del plugin | Te lo entrego yo \(carpeta/ZIP\) |) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (## Paso 1 · Instalar Visual Studio Code) Tj
+T* () Tj
+T* (1. Entra a **code.visualstudio.com**.) Tj
+ET
+endstream
+endobj
+46 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 45 0 R >>
+endobj
+47 0 obj
+<< /Length 2936 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(2. Descarga la versión para tu sistema \(**macOS** o **Windows**\).) Tj
+T* (3. Instálalo como cualquier programa \(siguiente -> siguiente -> finalizar\).) Tj
+T* (4. Ábrelo una vez para confirmar que funciona.) Tj
+T* () Tj
+T* (> **¿Qué es?** Un editor de texto para código. Aquí abriremos la carpeta del proyecto.) Tj
+T* () Tj
+T* (## Paso 2 · Instalar Node.js) Tj
+T* () Tj
+T* (1. Entra a **nodejs.org**.) Tj
+T* (2. Descarga la versión **LTS** \(la recomendada, botón de la izquierda\).) Tj
+T* (3. Instálala \(siguiente -> siguiente -> finalizar\).) Tj
+T* (4. Para comprobar que quedó bien: abre VS Code -> menú **Terminal -> New Terminal** y escribe:) Tj
+T* (   ```bash) Tj
+T* (   node --version) Tj
+T* (   ```) Tj
+T* (   Si aparece algo como `v22.x.x`, ¡funciona! [OK]) Tj
+T* () Tj
+T* (> **¿Qué es?** El "motor" que ejecuta JavaScript fuera del navegador. Necesario para instalar ) Tj
+T* (librerías y compilar el panel.) Tj
+T* () Tj
+T* (## Paso 3 · Instalar UXP Developer Tool \(UDT\)) Tj
+T* () Tj
+T* (1. Abre la app de **Adobe Creative Cloud** \(la que usas para instalar Premiere\).) Tj
+T* (2. Busca **"UXP Developer Tool"** \(en Marketplace / Escritorio\) e instálala. Es **gratis**.) Tj
+T* (3. Ábrela. Aquí es donde "cargaremos" el panel dentro de Premiere.) Tj
+T* () Tj
+T* (> **¿Qué es?** La herramienta oficial de Adobe para probar plugins mientras se desarrollan, sin ) Tj
+T* (tener que empaquetarlos.) Tj
+T* () Tj
+T* (## Paso 4 · Abrir el proyecto en VS Code) Tj
+T* () Tj
+T* (1. Descomprime el ZIP del proyecto que te entrego \(ej. `CorteIA/`\).) Tj
+T* (2. En VS Code: menú **File -> Open Folder...** y elige la carpeta del proyecto.) Tj
+T* (3. Verás a la izquierda la lista de archivos. **No toques nada**: solo vamos a ejecutar ) Tj
+T* (comandos.) Tj
+T* () Tj
+T* (## Paso 5 · Instalar las librerías del proyecto) Tj
+T* () Tj
+T* (Las "librerías" son piezas de código ya hechas que el proyecto necesita \(ej. ) Tj
+T* (`@adobe/premierepro`\). Se instalan solas con **un comando**.) Tj
+T* () Tj
+T* (1. En VS Code abre **Terminal -> New Terminal**.) Tj
+T* (2. Escribe exactamente:) Tj
+T* (   ```bash) Tj
+T* (   npm install) Tj
+T* (   ```) Tj
+T* (3. Pulsa Enter y **espera** \(puede tardar 1-3 min\). Se creará una carpeta `node_modules` con ) Tj
+T* (todo lo necesario.) Tj
+T* () Tj
+T* (> **¿Qué hizo `npm install`?** Leyó el archivo `package.json` \(la "lista de compras" del ) Tj
+T* (proyecto\) y descargó todas las librerías automáticamente. **No instalas nada a mano.**) Tj
+T* () Tj
+T* (## Paso 6 · Compilar el panel \(si usa TypeScript\)) Tj
+T* () Tj
+T* (Algunos proyectos necesitan "compilar" \(traducir TypeScript a JavaScript\). Si aplica, será otro ) Tj
+T* (comando simple:) Tj
+T* (```bash) Tj
+T* (npm run build) Tj
+T* (```) Tj
+T* (> Yo te diré si tu versión lo necesita y cuándo.) Tj
+T* () Tj
+T* (## Paso 7 · Cargar el panel en Premiere) Tj
+T* () Tj
+T* (1. Abre **Premiere Pro 26.3.2**.) Tj
+ET
+endstream
+endobj
+48 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 47 0 R >>
+endobj
+49 0 obj
+<< /Length 3007 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(2. Abre **UXP Developer Tool**.) Tj
+T* (3. Clic en **Add Plugin** -> selecciona el archivo **`manifest.json`** dentro de la carpeta del ) Tj
+T* (proyecto.) Tj
+T* (4. Clic en **Load**. El panel **CorteIA** aparecerá en Premiere \(menú **Ventana -> ) Tj
+T* (Extensiones**\).) Tj
+T* (5. \(Opcional\) Clic en **Watch**: cada cambio que yo haga se recarga solo.) Tj
+T* () Tj
+T* ([OK] ¡Listo! Ya tienes el panel corriendo para probar.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (## Comandos que usarás \(chuleta\)) Tj
+T* () Tj
+T* (| Comando | Qué hace |) Tj
+T* (|---------|----------|) Tj
+T* (| `node --version` | Comprueba que Node está instalado |) Tj
+T* (| `npm install` | Descarga las librerías del proyecto |) Tj
+T* (| `npm run build` | Compila el panel \(si aplica\) |) Tj
+T* (| `npm run dev` / `watch` | Modo desarrollo con recarga \(si aplica\) |) Tj
+T* () Tj
+T* (> **Regla de oro:** copia y pega **exactamente** lo que te doy. Si algo falla, **copia el texto ) Tj
+T* (rojo del error y pégamelo**: yo lo interpreto y te doy el arreglo.) Tj
+T* () Tj
+T* (## Problemas comunes) Tj
+T* () Tj
+T* (| Síntoma | Solución |) Tj
+T* (|---------|----------|) Tj
+T* (| `node no se reconoce / command not found` | Reinstala Node.js y reinicia VS Code |) Tj
+T* (| `npm install` da errores rojos | Copia el error y envíamelo; suele ser permisos o red |) Tj
+T* (| El panel no aparece en Premiere | Verifica que elegiste el `manifest.json` correcto y que ) Tj
+T* (Premiere es 26+ |) Tj
+T* (| "Permission denied" | En Mac, dar permisos; en Windows, ejecutar como administrador |) Tj
+T* () Tj
+T* (## Lo que NO necesitas hacer) Tj
+T* (- [NO] No necesitas escribir código.) Tj
+T* (- [NO] No necesitas entender JavaScript/TypeScript.) Tj
+T* (- [NO] No necesitas configurar nada complejo a mano.) Tj
+T* (- [OK] Solo: instalar las 3 herramientas, abrir la carpeta, correr `npm install` y cargar el ) Tj
+T* (panel.) Tj
+T* () Tj
+T* (> Ver el modelo de colaboración \(cómo lo hacemos juntos\) en [15 · Cómo trabajamos ) Tj
+T* (juntos]\(./15-como-trabajamos-juntos.md\).) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (# 15 · Cómo trabajamos juntos \(sin que programes\)) Tj
+T* () Tj
+T* (Este documento responde a una pregunta clave: **"Yo no sé programar, ¿puedes acceder a mi PC y ) Tj
+T* (hacerlo todo?"**) Tj
+T* () Tj
+T* (## Respuesta honesta sobre el acceso a tu PC) Tj
+T* () Tj
+T* (**No tengo la capacidad de "tomar control remoto" de tu computadora** como lo haría un software ) Tj
+T* (de escritorio remoto \(tipo TeamViewer/AnyDesk\). No puedo mover tu mouse ni instalar cosas por mi) Tj
+T* ( cuenta en tu máquina.) Tj
+T* () Tj
+T* (**Pero eso no es un problema**, porque la forma de trabajar hace que **tú nunca tengas que ) Tj
+T* (programar**. Yo escribo el 100% del código; tú solo haces clics y copias-pegas lo que te indico.) Tj
+T* () Tj
+T* (## Cómo colaboramos en la práctica) Tj
+T* () Tj
+T* (```mermaid) Tj
+T* (graph LR) Tj
+T* (    A[Yo escribo<br/>todo el código] --> B[Te entrego<br/>la carpeta/ZIP]) Tj
+ET
+endstream
+endobj
+50 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 49 0 R >>
+endobj
+51 0 obj
+<< /Length 3339 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+(    B --> C[Tú copias-pegas<br/>los comandos]) Tj
+T* (    C --> D[Pruebas en<br/>tu Premiere]) Tj
+T* (    D --> E[Me pegas errores<br/>o capturas]) Tj
+T* (    E --> A) Tj
+T* (```) Tj
+T* () Tj
+T* (1. **Yo programo** - escribo todos los archivos del plugin \(panel, motor, perfiles\).) Tj
+T* (2. **Te los entrego** - como carpeta o ZIP descargable, listos.) Tj
+T* (3. **Tú los ejecutas** - sigues la [guía paso a paso]\(./14-guia-vscode-paso-a-paso.md\): instalar) Tj
+T* ( 3 herramientas, `npm install`, cargar el panel.) Tj
+T* (4. **Pruebas** - abres el panel en Premiere y lo usas con material real.) Tj
+T* (5. **Me cuentas** - si algo falla, **me pegas el texto del error o una captura**; yo lo ) Tj
+T* (interpreto y te doy el arreglo.) Tj
+T* (6. **Repetimos** - iteramos hasta que quede perfecto.) Tj
+T* () Tj
+T* (> Tú eres mis "ojos y manos" en tu Premiere; yo soy el cerebro que programa. Con eso basta.) Tj
+T* () Tj
+T* (## ¿Hay alguna forma de que trabajes más directo en mi máquina?) Tj
+T* () Tj
+T* (Sí, dependiendo de tu configuración, hay opciones que **reducen aún más** lo que tienes que ) Tj
+T* (hacer:) Tj
+T* () Tj
+T* (| Opción | Qué implica |) Tj
+T* (|--------|-------------|) Tj
+T* (| **Craft Agent en tu equipo** | Si usas Craft Agent instalado en tu Mac/Windows y defines una ) Tj
+T* (**carpeta de trabajo** local, el agente puede **escribir los archivos directamente ahí**. Tú ) Tj
+T* (solo cargas el panel en Premiere. |) Tj
+T* (| **Comandos guiados** | Te doy comandos "de un solo clic" \(scripts\) que instalan y configuran ) Tj
+T* (todo automáticamente. |) Tj
+T* (| **Instaladores** | En la fase final, te entrego un archivo `.ccx` que se instala con **doble ) Tj
+T* (clic** \(sin terminal\). |) Tj
+T* (| **Sesión en vivo** | Tú compartes pantalla \(por tu cuenta\) y yo te guío en tiempo real, paso a) Tj
+T* ( paso. |) Tj
+T* () Tj
+T* (> **Importante:** aunque el agente escriba archivos, **Premiere corre en tu máquina**. La prueba) Tj
+T* ( final del panel siempre ocurre en tu Premiere; por eso tu rol de "probar y reportar" es ) Tj
+T* (esencial.) Tj
+T* () Tj
+T* (## Lo que necesito de ti \(mínimo\)) Tj
+T* () Tj
+T* (- [OK] Instalar 3 programas una vez \(VS Code, Node.js, UXP Developer Tool\).) Tj
+T* (- [OK] Copiar-pegar los comandos que te doy.) Tj
+T* (- [OK] Probar el panel en tu Premiere.) Tj
+T* (- [OK] Enviarme errores/capturas cuando algo no funcione.) Tj
+T* () Tj
+T* (## Lo que yo pongo) Tj
+T* () Tj
+T* (- [OK] Todo el código \(panel + motor + perfiles\).) Tj
+T* (- [OK] Las guías paso a paso.) Tj
+T* (- [OK] La interpretación de errores y los arreglos.) Tj
+T* (- [OK] Los scripts/instaladores para simplificarte la vida.) Tj
+T* () Tj
+T* (## Seguridad y confianza) Tj
+T* () Tj
+T* (- Nunca te pediré contraseñas ni control remoto de tu equipo.) Tj
+T* (- Los comandos que te dé son estándar y públicos \(`npm install`, etc.\); si tienes dudas, me ) Tj
+T* (preguntas qué hace cada uno antes de ejecutarlo.) Tj
+T* (- Tus videos y datos se quedan en **tu** computadora \(salvo que elijas el modo API, donde el ) Tj
+T* (audio se procesa en un servicio externo - ver [05 · Transcripción]\(./05-transcripcion-y-) Tj
+T* (analisis.md\)\).) Tj
+T* () Tj
+T* (## Resumen) Tj
+T* () Tj
+T* (> No puedo controlar tu PC a distancia, **pero no lo necesito**: yo hago la programación y te la) Tj
+ET
+endstream
+endobj
+52 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 51 0 R >>
+endobj
+53 0 obj
+<< /Length 215 >>
+stream
+BT /F1 9 Tf 11 TL 40 752 Td
+( entrego lista; tú solo instalas, ejecutas comandos simples y pruebas. Es un trabajo en equipo ) Tj
+T* (donde **no escribes ni una línea de código**.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+ET
+endstream
+endobj
+54 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 55 0 R >> >> /Contents 53 0 R >>
+endobj
+55 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 56
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000289 00000 n 
+0000003694 00000 n 
+0000003821 00000 n 
+0000007248 00000 n 
+0000007375 00000 n 
+0000010471 00000 n 
+0000010598 00000 n 
+0000014043 00000 n 
+0000014171 00000 n 
+0000017189 00000 n 
+0000017318 00000 n 
+0000019988 00000 n 
+0000020117 00000 n 
+0000022798 00000 n 
+0000022927 00000 n 
+0000025370 00000 n 
+0000025499 00000 n 
+0000028546 00000 n 
+0000028675 00000 n 
+0000031632 00000 n 
+0000031761 00000 n 
+0000034563 00000 n 
+0000034692 00000 n 
+0000037816 00000 n 
+0000037945 00000 n 
+0000040968 00000 n 
+0000041097 00000 n 
+0000044939 00000 n 
+0000045068 00000 n 
+0000049259 00000 n 
+0000049388 00000 n 
+0000053082 00000 n 
+0000053211 00000 n 
+0000056358 00000 n 
+0000056487 00000 n 
+0000059204 00000 n 
+0000059333 00000 n 
+0000062847 00000 n 
+0000062976 00000 n 
+0000066856 00000 n 
+0000066985 00000 n 
+0000070184 00000 n 
+0000070313 00000 n 
+0000073538 00000 n 
+0000073667 00000 n 
+0000076656 00000 n 
+0000076785 00000 n 
+0000079845 00000 n 
+0000079974 00000 n 
+0000083366 00000 n 
+0000083495 00000 n 
+0000083762 00000 n 
+0000083891 00000 n 
+trailer
+<< /Size 56 /Root 1 0 R >>
+startxref
+83987
+%%EOF

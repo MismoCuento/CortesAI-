@@ -1,0 +1,25 @@
+{
+  "id": "entrevista",
+  "label": "Entrevista / Podcast",
+  "desc": "Mantiene el hilo de la conversacion.",
+  "pace": "medio",
+  "maxSilence": 0.8,
+  "minClip": 4.0,
+  "maxClip": 40.0,
+  "respectSentences": true,
+  "keep": [
+    "respuesta_sustanciosa",
+    "anecdota",
+    "punto_de_vista",
+    "momento_emotivo"
+  ],
+  "remove": [
+    "silencio",
+    "muletilla",
+    "divagacion",
+    "tema_irrelevante"
+  ],
+  "structure": "hook-cuerpo",
+  "visualWeight": 0.4,
+  "scoringPrompt": "Prioriza respuestas con contenido, historias y opiniones claras. Manten el hilo logico de la conversacion."
+}

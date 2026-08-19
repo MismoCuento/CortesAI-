@@ -1,0 +1,11 @@
+{
+  "name": "cortesai-panel",
+  "version": "0.1.0",
+  "description": "CortesAI — edición automática por tipo de video para Adobe Premiere Pro (UXP)",
+  "private": true,
+  "scripts": {
+    "note": "Fase 1 no requiere build. Las dependencias se añaden en la Fase 2."
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

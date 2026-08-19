@@ -1,0 +1,26 @@
+{
+  "id": "educativo",
+  "label": "Educativo / Tutorial",
+  "desc": "Explicaciones claras y pasos ordenados.",
+  "pace": "medio",
+  "maxSilence": 0.7,
+  "minClip": 3.0,
+  "maxClip": 30.0,
+  "respectSentences": true,
+  "keep": [
+    "concepto_clave",
+    "paso",
+    "ejemplo",
+    "definicion",
+    "conclusion"
+  ],
+  "remove": [
+    "silencio",
+    "muletilla",
+    "digresion",
+    "repeticion"
+  ],
+  "structure": "hook-cuerpo-cta",
+  "visualWeight": 0.4,
+  "scoringPrompt": "Prioriza explicaciones claras, pasos y ejemplos. Manten el orden logico (introduccion, desarrollo, conclusion). No cortes a mitad de una idea."
+}

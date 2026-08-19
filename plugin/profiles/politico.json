@@ -1,0 +1,25 @@
+{
+  "id": "politico",
+  "label": "Politico",
+  "desc": "Respeta frases completas y declaraciones clave.",
+  "pace": "pausado",
+  "maxSilence": 1.0,
+  "minClip": 3.0,
+  "maxClip": 25.0,
+  "respectSentences": true,
+  "keep": [
+    "declaracion_clave",
+    "cifra",
+    "promesa",
+    "postura",
+    "respuesta_directa"
+  ],
+  "remove": [
+    "silencio_largo",
+    "muletilla",
+    "pregunta_repetida"
+  ],
+  "structure": "hook-cuerpo",
+  "visualWeight": 0.3,
+  "scoringPrompt": "Prioriza declaraciones claras, cifras, compromisos y respuestas directas. Nunca cortes una frase a la mitad ni saques algo de contexto."
+}

@@ -1,0 +1,26 @@
+{
+  "id": "ecommerce",
+  "label": "Ecommerce / Producto",
+  "desc": "Producto, beneficios y llamado a la accion.",
+  "pace": "medio",
+  "maxSilence": 0.5,
+  "minClip": 1.5,
+  "maxClip": 8.0,
+  "targetDuration": 45,
+  "respectSentences": false,
+  "keep": [
+    "presentacion_producto",
+    "beneficio",
+    "caracteristica",
+    "precio",
+    "llamado_accion"
+  ],
+  "remove": [
+    "silencio",
+    "duda",
+    "informacion_redundante"
+  ],
+  "structure": "hook-gancho-cuerpo-cta",
+  "visualWeight": 0.65,
+  "scoringPrompt": "Prioriza claridad del producto, beneficios concretos y el llamado a la accion final. Ordena para terminar en una invitacion a comprar/actuar."
+}

@@ -1,0 +1,27 @@
+{
+  "id": "anuncios",
+  "label": "Anuncios / Publicidad",
+  "desc": "Mensaje directo, marca visible y CTA potente.",
+  "pace": "rapido",
+  "maxSilence": 0.4,
+  "minClip": 1.0,
+  "maxClip": 8.0,
+  "targetDuration": 20,
+  "respectSentences": false,
+  "keep": [
+    "gancho",
+    "propuesta_de_valor",
+    "marca",
+    "beneficio",
+    "llamado_accion"
+  ],
+  "remove": [
+    "silencio",
+    "duda",
+    "relleno",
+    "informacion_secundaria"
+  ],
+  "structure": "hook-gancho-cuerpo-cta",
+  "visualWeight": 0.6,
+  "scoringPrompt": "Prioriza un gancho fuerte en los primeros segundos, la propuesta de valor y un cierre con llamado a la accion claro. Manten la marca visible si aparece."
+}

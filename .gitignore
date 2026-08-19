@@ -1,0 +1,16 @@
+# Artefactos temporales de generación (no forman parte del código)
+*.b64
+docs_wrapped.b64
+docs.b64
+instalar-min.sh
+instalar-cortesai.command
+
+# Empaquetados generados (GitHub genera el ZIP al descargar)
+*.zip
+
+# Dependencias
+node_modules/
+
+# Sistema
+.DS_Store
+Thumbs.db

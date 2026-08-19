@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <header class="header">
+      <div class="logo">✂️ CortesAI</div>
+      <div class="subtitle">Edición automática · Premiere Pro</div>
+    </header>
+
+    <!-- ====== CONFIGURAR ====== -->
+    <section id="view-config" class="view">
+
+      <!-- Carpeta -->
+      <label class="field-label">📁 Carpeta de videos</label>
+      <div class="row">
+        <input id="folderPath" type="text" placeholder="Ninguna carpeta seleccionada" readonly />
+        <button id="btnPickFolder" class="btn btn-secondary">Elegir</button>
+      </div>
+      <div id="folderInfo" class="hint"></div>
+
+      <!-- Tipo de video -->
+      <label class="field-label">🎬 Tipo de video</label>
+      <select id="videoType" class="select"></select>
+      <div id="typeDesc" class="hint"></div>
+
+      <!-- Duración -->
+      <label class="field-label">⏱️ Duración del video final</label>
+      <select id="duration" class="select">
+        <option value="15">15 segundos</option>
+        <option value="30" selected>30 segundos</option>
+        <option value="60">60 segundos</option>
+        <option value="90">90 segundos</option>
+        <option value="custom">Personalizada…</option>
+        <option value="auto">Automática</option>
+      </select>
+      <input id="durationCustom" type="text" class="hidden" placeholder="Ej. 45  ·  o  1:30" />
+
+      <!-- Formato -->
+      <label class="field-label">🖼️ Formato / relación de aspecto</label>
+      <select id="format" class="select">
+        <option value="9:16" selected>9:16 · Vertical (Reels/TikTok)</option>
+        <option value="16:9">16:9 · Horizontal (YouTube)</option>
+        <option value="1:1">1:1 · Cuadrado</option>
+        <option value="4:5">4:5 · Retrato (Instagram)</option>
+        <option value="original">Original (mantener)</option>
+      </select>
+
+      <!-- Idioma -->
+      <label class="field-label">🗣️ Idioma</label>
+      <select id="language" class="select">
+        <option value="es" selected>Español</option>
+        <option value="en">Inglés</option>
+        <option value="de">Alemán</option>
+        <option value="fr">Francés</option>
+        <option value="auto">Detectar automáticamente</option>
+      </select>
+
+      <!-- Transcripción -->
+      <label class="field-label">🔤 Transcripción</label>
+      <div class="radio-row">
+        <label class="radio"><input type="radio" name="transcribe" value="local" checked /> Local (gratis)</label>
+        <label class="radio"><input type="radio" name="transcribe" value="api" /> API</label>
+      </div>
+
+      <!-- Avanzado -->
+      <details class="advanced">
+        <summary>▸ Opciones avanzadas</summary>
+        <label class="checkbox"><input id="optReview" type="checkbox" checked /> Revisar cortes antes de construir</label>
+        <label class="checkbox"><input id="optSubs" type="checkbox" /> Generar subtítulos automáticos</label>
+        <label class="checkbox"><input id="optReframe" type="checkbox" checked /> Reencuadre automático al formato</label>
+      </details>
+
+      <button id="btnStart" class="btn btn-primary btn-start">▶  Iniciar</button>
+      <div id="configError" class="error-msg hidden"></div>
+    </section>
+
+    <!-- ====== PROCESANDO ====== -->
+    <section id="view-progress" class="view hidden">
+      <div class="progress-title">Procesando material…</div>
+      <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+      <div id="progressPct" class="progress-pct">0%</div>
+      <ul id="progressSteps" class="steps"></ul>
+      <button id="btnCancel" class="btn btn-secondary">Cancelar</button>
+    </section>
+
+    <!-- ====== LISTO ====== -->
+    <section id="view-done" class="view hidden">
+      <div class="done-icon">✅</div>
+      <div class="done-title">Proceso completado</div>
+      <div id="doneSummary" class="done-summary"></div>
+      <button id="btnNew" class="btn btn-primary">Nuevo proceso</button>
+    </section>
+
+    <footer class="footer">v0.1.0 · Fase 1 (interfaz)</footer>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>

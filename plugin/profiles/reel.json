@@ -1,0 +1,26 @@
+{
+  "id": "reel",
+  "label": "Reel / Social",
+  "desc": "Cortes rápidos, engancha en los primeros segundos.",
+  "pace": "rapido",
+  "maxSilence": 0.4,
+  "minClip": 1.0,
+  "maxClip": 6.0,
+  "targetDuration": 30,
+  "respectSentences": false,
+  "keep": [
+    "gancho",
+    "momento_alta_energia",
+    "remate",
+    "dato_llamativo"
+  ],
+  "remove": [
+    "silencio",
+    "muletilla",
+    "repeticion",
+    "titubeo"
+  ],
+  "structure": "hook-gancho-cuerpo-cta",
+  "visualWeight": 0.6,
+  "scoringPrompt": "Prioriza momentos con gancho, emocion o sorpresa. Penaliza intros lentas. El primer clip debe captar atencion en menos de 2 segundos."
+}

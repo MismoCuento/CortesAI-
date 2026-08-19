@@ -1,0 +1,23 @@
+{
+  "id": "deporte",
+  "label": "Deportivo",
+  "desc": "Detecta accion y picos de audio (jugadas, goles).",
+  "pace": "rapido",
+  "maxSilence": 0.6,
+  "minClip": 2.0,
+  "maxClip": 12.0,
+  "respectSentences": false,
+  "keep": [
+    "pico_de_audio",
+    "momento_de_accion",
+    "celebracion",
+    "jugada_clave"
+  ],
+  "remove": [
+    "tiempo_muerto",
+    "repeticion_lenta"
+  ],
+  "structure": "hook-cuerpo",
+  "visualWeight": 0.7,
+  "scoringPrompt": "Prioriza picos de energia en audio y narracion intensa (posibles goles/jugadas). Usa el volumen y las palabras del narrador como senal de importancia."
+}
