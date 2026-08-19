@@ -112,20 +112,35 @@ function targetSeconds(duration) {
   const n = parseFloat(d); return isNaN(n) ? Infinity : n;
 }
 
-// Ensambla los mejores momentos de TODOS los clips en un solo montaje
+// Ensambla los mejores momentos en UN montaje: 1 hook + cuerpo + 1 cta, sin pasarse de la duración
 function assembleMontage(perClip, settings) {
   const target = targetSeconds(settings.duration);
   const all = [];
   perClip.forEach(r => (r.cuts || []).forEach(c => all.push(Object.assign({}, c, { clip: r.video }))));
-  all.sort((a, b) => (b.score || 0) - (a.score || 0));         // mejor score primero
+  all.sort((a, b) => (b.score || 0) - (a.score || 0));   // mejor score primero
+  const len = (c) => Math.max(0.1, (c.end || 0) - (c.start || 0));
+
+  const bestHook = all.find(c => c.role === "hook") || null;
+  const bestCta  = all.find(c => c.role === "cta")  || null;
+  const ctaLen   = bestCta ? len(bestCta) : 0;
+
   const chosen = []; let total = 0;
+  const isSame = (a, b) => a && b && a.clip === b.clip && a.start === b.start && a.end === b.end;
+
+  // 1) Hook (el mejor) al inicio
+  if (bestHook) { chosen.push(Object.assign({}, bestHook, { role: "hook" })); total += len(bestHook); }
+
+  // 2) Cuerpo: rellena con lo mejor restante, dejando espacio para el CTA
   for (const c of all) {
-    const len = Math.max(0, (c.end || 0) - (c.start || 0));
-    if (chosen.length === 0 || total + len <= target) { chosen.push(c); total += len; }
-    if (total >= target) break;
+    if (isSame(c, bestHook) || isSame(c, bestCta)) continue;
+    if (total + len(c) + ctaLen > target) continue;
+    chosen.push(Object.assign({}, c, { role: "cuerpo" }));   // todo lo del medio es cuerpo
+    total += len(c);
   }
-  const order = { hook: 0, gancho: 1, cuerpo: 2, cta: 3 };     // ordena por estructura narrativa
-  chosen.sort((a, b) => (order[a.role] != null ? order[a.role] : 2) - (order[b.role] != null ? order[b.role] : 2));
+
+  // 3) CTA (el mejor) al final
+  if (bestCta) { chosen.push(Object.assign({}, bestCta, { role: "cta" })); total += ctaLen; }
+
   return { cuts: chosen, totalDuration: total, target: (target === Infinity ? null : target) };
 }
 
@@ -243,7 +258,7 @@ const server = http.createServer((req, res) => {
 
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.0" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.1" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";

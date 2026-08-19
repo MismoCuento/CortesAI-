@@ -374,7 +374,11 @@ async function buildTimeline() {
     setSt("1/4 Importando " + uniqueNames.length + " clips…");
     stage = "importFiles";
     const root = await project.getRootItem();
-    await project.importFiles(paths, true, root, false);
+    const importedOk = await project.importFiles(paths, true, root, false);
+    // Sonda directa: ¿getItems del root funciona?
+    let probeCount = -1, probeErr = "";
+    try { const probe = await (await project.getRootItem()).getItems(); probeCount = probe ? probe.length : -2; }
+    catch (e) { probeErr = (e && e.message) ? e.message : String(e); }
 
     // 2) Localizar los ProjectItems (recursivo + flexible, con reintentos)
     setSt("2/4 Localizando clips…");
@@ -396,9 +400,10 @@ async function buildTimeline() {
     }
     const missing = uniqueNames.filter(n => !resolve(n));
     if (missing.length) {
-      throw new Error("No encontré: " + missing.join(", ") +
-        " · El proyecto tiene " + sampleNames.length + " items. Ejemplos de nombres: " +
-        sampleNames.slice(0, 8).join(", "));
+      throw new Error("importFiles=" + importedOk + " · sonda getItems=" + probeCount + (probeErr ? (" (err: " + probeErr + ")") : "") +
+        " · recolectados=" + sampleNames.length +
+        " · 1a ruta: " + (paths[0] || "?") +
+        (sampleNames.length ? (" · ej: " + sampleNames.slice(0, 6).join(", ")) : ""));
     }
 
     // 3) Crear la secuencia
