@@ -16,6 +16,7 @@ try {
   formats = uxp.storage.formats;
 } catch (e) { /* fuera de Premiere */ }
 
+const ENGINE = "http://localhost:8765";
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const MODEL_STT = "whisper-large-v3-turbo";
 const MODEL_LLM = "openai/gpt-oss-20b";
@@ -112,7 +113,7 @@ async function start() {
 }
 
 // ---------- Motor real (API / Groq) ----------
-const STEPS_API = ["Leyendo el video", "Transcribiendo con Groq (Whisper)", "Analizando con IA (cortes)", "Listo"];
+const STEPS_API = ["Conectando con el motor local", "Extrayendo audio (FFmpeg)", "Transcribiendo con Groq", "Analizando con IA (cortes)"];
 
 async function realProcess(s) {
   cancelRequested = false;
@@ -120,35 +121,66 @@ async function realProcess(s) {
   buildSteps(STEPS_API);
   hideProgressError();
 
+  // 1) ¿Está corriendo el motor local? (soporta cualquier tamaño de video)
+  stepState(0, "active"); setProgress(8);
+  const engineOk = await engineReachable();
+
+  if (engineOk) {
+    return processViaEngine(s);
+  }
+  // 2) Respaldo: modo directo (solo clips pequeños <24MB, sin FFmpeg)
+  return processDirect(s);
+}
+
+async function engineReachable() {
   try {
-    // --- Prototipo: procesamos el PRIMER video de la carpeta ---
+    const r = await fetch(ENGINE + "/health", { method: "GET" });
+    const j = await r.json();
+    return !!(j && j.ok);
+  } catch (e) { return false; }
+}
+
+// Camino principal: motor local (Node + FFmpeg + Groq) — cualquier tamaño
+async function processViaEngine(s) {
+  try {
+    stepState(0, "done"); stepState(1, "active"); setProgress(30);
+    const body = JSON.stringify({
+      folderPath: selectedFolder.nativePath,
+      settings: s,
+      profile: currentProfile()
+    });
+    stepState(2, "active"); setProgress(55);
+    const r = await fetch(ENGINE + "/process", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body
+    });
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || ("Motor respondió " + r.status));
+    stepState(1, "done"); stepState(2, "done"); stepState(3, "done"); setProgress(100);
+    await wait(150);
+    showResults(data.video, { language: data.language, duration: data.duration }, { cuts: data.cuts, notes: data.notes }, s);
+  } catch (err) {
+    showProgressError((err && err.message) ? err.message : String(err));
+  }
+}
+
+// Respaldo directo (sin motor): envía el video a Groq. Solo clips pequeños.
+async function processDirect(s) {
+  try {
     const entry = videoEntries[0];
-    stepState(0, "active"); setProgress(5);
     const ext = extOf(entry.name);
-
-    // Leer bytes
+    stepState(0, "done"); stepState(1, "done"); // sin FFmpeg en este camino
+    stepState(2, "active"); setProgress(20);
     const buf = await entry.read({ format: formats.binary });
-    const size = buf.byteLength;
-    if (size > MAX_BYTES) {
-      throw new Error("El video \""+entry.name+"\" pesa "+(size/1048576).toFixed(1)+" MB y supera el límite de "+(MAX_BYTES/1048576)+" MB de la API. "+
-        "En el siguiente paso añadiremos extracción de audio con FFmpeg para archivos grandes. Prueba con un clip más corto por ahora.");
+    if (buf.byteLength > MAX_BYTES) {
+      throw new Error("El video \"" + entry.name + "\" pesa " + (buf.byteLength/1048576).toFixed(1) +
+        " MB. Para videos grandes debes abrir el MOTOR LOCAL (start-mac.command): así se extrae solo el audio y se acepta cualquier tamaño. " +
+        "El modo directo (sin motor) solo admite clips menores de " + (MAX_BYTES/1048576) + " MB.");
     }
-    stepState(0, "done"); setProgress(20);
-
-    // --- Transcribir ---
-    if (cancelRequested) return showView("config");
-    stepState(1, "active");
     const tr = await groqTranscribe(buf, entry.name, ext, s);
-    stepState(1, "done"); setProgress(60);
-
-    // --- Analizar ---
-    if (cancelRequested) return showView("config");
-    stepState(2, "active");
+    stepState(2, "done"); stepState(3, "active"); setProgress(70);
     const plan = await groqAnalyze(tr, s);
-    stepState(2, "done"); setProgress(95);
-
     stepState(3, "done"); setProgress(100);
-    await wait(200);
+    await wait(150);
     showResults(entry.name, tr, plan, s);
   } catch (err) {
     showProgressError((err && err.message) ? err.message : String(err));

@@ -9,10 +9,14 @@ CortesAI es una extensión (panel UXP) para Premiere Pro que toma una carpeta de
 ```
 .
 ├── docs/        · Documentación completa del proyecto (16 documentos)
-├── plugin/      · Código del panel UXP (Fase 1: interfaz)
+├── plugin/      · Código del panel UXP (interfaz, corre en Premiere)
 │   ├── manifest.json
 │   ├── index.html · styles.css · index.js
 │   └── profiles/  · perfiles por tipo de video (editables)
+├── engine/      · Motor local (Node.js): FFmpeg + Groq, cualquier tamaño de video
+│   ├── server.js
+│   ├── start-mac.command · start-windows.bat
+│   └── README.md
 └── README.md
 ```
 

@@ -1,0 +1,13 @@
+{
+  "name": "cortesai-engine",
+  "version": "0.3.0",
+  "description": "Motor local de CortesAI: FFmpeg + Groq (transcripción y cortes) para Premiere Pro",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}
