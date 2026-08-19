@@ -40,6 +40,7 @@ let PROFILES = FALLBACK_PROFILES;
 let selectedFolder = null;
 let videoEntries = [];
 let cancelRequested = false;
+let lastMontage = null;   // { folder, cuts:[{clip,start,end,role,...}], name }
 
 // ---------- Utilidades ----------
 const $ = (id) => document.getElementById(id);
@@ -168,6 +169,7 @@ async function processViaEngine(s) {
 function showMontage(data, s) {
   const m = data.montage || { cuts: [] };
   const cuts = m.cuts || [];
+  lastMontage = { folder: (selectedFolder && selectedFolder.nativePath) || "", cuts: cuts, name: currentProfile().label };
   let html = "<b>✅ Montaje calculado (real)</b><br/>";
   html += "Videos procesados: <b>" + data.processed + "</b> de " + data.totalVideos +
           (data.skipped && data.skipped.length ? (" · " + data.skipped.length + " saltado(s)") : "") + "<br/>";
@@ -183,7 +185,7 @@ function showMontage(data, s) {
   if (data.skipped && data.skipped.length) {
     html += "<br/><span style='color:#8f8f8f'>Saltados: " + data.skipped.map(x => esc(x.video)).join(", ") + "</span>";
   }
-  html += "<br/><br/><i>La Fase 3 insertará este montaje como secuencia en tu timeline (en el orden mostrado).</i>";
+  html += "<br/><br/><i>Pulsa \"Construir en el timeline\" para crear esta secuencia en Premiere.</i>";
   $("doneSummary").innerHTML = html;
   showView("done");
 }
@@ -329,6 +331,72 @@ function showProgressError(m){
 }
 function hideProgressError(){ const e=$("progressError"); if(e) e.classList.add("hidden"); }
 
+// ---------- FASE 3: construir el montaje en el timeline de Premiere ----------
+async function buildTimeline() {
+  const st = $("buildStatus");
+  const setSt = (t) => { st.textContent = t; };
+  if (!lastMontage || !lastMontage.cuts.length) { setSt("No hay montaje para construir."); return; }
+
+  let ppro;
+  try { ppro = require("premierepro"); }
+  catch (e) { setSt("Esta función solo funciona dentro de Premiere."); return; }
+
+  $("btnBuild").disabled = true;
+  try {
+    setSt("Abriendo proyecto…");
+    const project = await ppro.Project.getActiveProject();
+    if (!project) throw new Error("Abre o crea un proyecto en Premiere primero (Archivo → Nuevo → Proyecto).");
+
+    const folder = lastMontage.folder;
+    const sep = folder.indexOf("\\") >= 0 ? "\\" : "/";
+    const uniqueNames = [];
+    lastMontage.cuts.forEach(c => { if (uniqueNames.indexOf(c.clip) < 0) uniqueNames.push(c.clip); });
+    const paths = uniqueNames.map(n => folder + sep + n);
+
+    // 1) Importar los clips únicos
+    setSt("Importando " + uniqueNames.length + " clips…");
+    const root = await project.getRootItem();
+    await project.importFiles(paths, true, root, false);
+
+    // 2) Mapear nombre → ProjectItem
+    const items = await root.getItems();
+    const byName = {};
+    for (const it of items) { try { byName[await it.getName()] = it; } catch (e) {} }
+    const firstItem = byName[uniqueNames[0]];
+    if (!firstItem) throw new Error("No se encontró el clip importado: " + uniqueNames[0]);
+
+    // 3) Crear la secuencia a partir del primer medio
+    setSt("Creando secuencia…");
+    const seqName = "CortesAI - " + lastMontage.name + " - montaje";
+    const firstClip = ppro.ClipProjectItem.cast(firstItem);
+    const seq = await project.createSequenceFromMedia(seqName, [firstClip]);
+    const editor = ppro.SequenceEditor.getEditor(seq);
+
+    // 4) Insertar cada corte en orden (recortado con in/out)
+    setSt("Insertando " + lastMontage.cuts.length + " cortes…");
+    const T = (s) => ppro.TickTime.createWithSeconds(s);
+    let playhead = 0;
+    project.executeTransaction((compound) => {
+      lastMontage.cuts.forEach(c => {
+        const item = byName[c.clip];
+        if (!item) return;
+        const clip = ppro.ClipProjectItem.cast(item);
+        compound.addAction(clip.createSetInPointAction(T(c.start)));
+        compound.addAction(clip.createSetOutPointAction(T(c.end)));
+        compound.addAction(editor.createOverwriteItemAction(item, T(playhead), 0, 0));
+        playhead += Math.max(0.1, (c.end - c.start));
+      });
+    }, "CortesAI: construir montaje");
+
+    try { await project.openSequence(seq); } catch (e) {}
+    setSt("✅ Secuencia \"" + seqName + "\" creada en tu timeline (" + lastMontage.cuts.length + " cortes, " + fmt(playhead) + ").");
+  } catch (err) {
+    setSt("Error: " + ((err && err.message) ? err.message : String(err)));
+  } finally {
+    $("btnBuild").disabled = false;
+  }
+}
+
 // ---------- Eventos ----------
 function toggleApiKey(){
   const isApi = document.querySelector('input[name="transcribe"]:checked').value === "api";
@@ -341,7 +409,8 @@ function bind() {
   document.querySelectorAll('input[name="transcribe"]').forEach(r => r.addEventListener("change", toggleApiKey));
   $("btnStart").addEventListener("click", start);
   $("btnCancel").addEventListener("click", ()=>{ cancelRequested = true; hideProgressError(); showView("config"); });
-  $("btnNew").addEventListener("click", ()=> showView("config"));
+  $("btnBuild").addEventListener("click", buildTimeline);
+  $("btnNew").addEventListener("click", ()=> { $("buildStatus").textContent = ""; showView("config"); });
 }
 
 // ---------- Arranque ----------
