@@ -458,68 +458,56 @@ async function buildTimeline() {
         (sampleNames.length ? (" · ej: " + sampleNames.slice(0, 6).join(", ")) : ""));
     }
 
-    // 3) Crear la secuencia
-    setSt("3/4 Creando secuencia…");
-    stage = "createSequenceFromMedia";
+    const T = (s2) => ppro.TickTime.createWithSeconds(s2);
     const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
-    const firstClip = ppro.ClipProjectItem.cast(resolve(uniqueNames[0]));
-    const seq = await project.createSequenceFromMedia(seqName, [firstClip]);
+
+    // 3) Crear un subclip RECORTADO por cada corte (createSubClipAction)
+    setSt("3/5 Recortando " + lastMontage.cuts.length + " subclips…");
+    stage = "createSubClips";
+    const subNames = [], subErrs = [];
+    project.executeTransaction((cp) => {
+      lastMontage.cuts.forEach((c, i) => {
+        const item = resolve(c.clip);
+        if (!item) { subErrs.push("sin item: " + c.clip); return; }
+        try {
+          const clip = ppro.ClipProjectItem.cast(item);
+          const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + c.clip.replace(/\.[^.]+$/, "");
+          subNames.push(nm);
+          cp.addAction(clip.createSubClipAction(nm, T(c.start), T(c.end), true, { takeVideo: true, takeAudio: true }));
+        } catch (e) { subErrs.push("sub[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
+      });
+    }, "CortesAI subclips");
+
+    // 4) Localizar los subclips creados (recursivo + reintentos)
+    setSt("4/5 Localizando subclips…");
+    stage = "findSubClips";
+    let subByName = {};
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const all = await collectAllItems(await project.getRootItem(), []);
+      subByName = {};
+      for (const it of all) { let nm = null; try { nm = it.name; } catch (e) {} if (nm) subByName[nm] = it; }
+      if (subNames.length && subNames.every(n => subByName[n])) break;
+      await wait(400);
+    }
+    const subItems = subNames.map(n => subByName[n]).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
+    const missingSub = subNames.filter(n => !subByName[n]).length;
+
+    // 5) Crear la secuencia con TODOS los subclips en orden
+    setSt("5/5 Armando secuencia con " + subItems.length + " cortes…");
+    stage = "createSequenceFromMedia";
+    const seq = await project.createSequenceFromMedia(seqName, subItems);
     if (!seq) throw new Error("createSequenceFromMedia devolvió vacío.");
     stage = "openSequence";
     try { await project.openSequence(seq); } catch (e) {}
 
-    // 4) Insertar cada corte POR SEPARADO (fijar recorte + colocar en el playhead)
-    setSt("4/4 Insertando " + lastMontage.cuts.length + " cortes…");
-    stage = "getEditor";
-    const editor = ppro.SequenceEditor.getEditor(seq);
-    const T = (s) => ppro.TickTime.createWithSeconds(s);
-    let playhead = 0, inserted = 0, failed = 0, firstErr = "", method = "";
-    const errs = [];
-    stage = "place";
-    for (const c of lastMontage.cuts) {
-      const item = resolve(c.clip);
-      if (!item) { failed++; errs.push("sin item: " + c.clip); continue; }
-      const clip = ppro.ClipProjectItem.cast(item);
-      const ph = playhead;
-      let ok = false;
+    const resumen = "Secuencia \"" + seqName + "\" · subclips: " + subItems.length + "/" + lastMontage.cuts.length +
+          (missingSub ? (" · " + missingSub + " no hallados") : "") + (subErrs.length ? (" · errSub: " + subErrs[0]) : "");
+    setSt("✅ " + resumen);
 
-      // Método A: overwrite (recorte + colocar en una sola transacción)
-      try {
-        ok = project.executeTransaction((cp) => {
-          cp.addAction(clip.createSetInPointAction(T(c.start)));
-          cp.addAction(clip.createSetOutPointAction(T(c.end)));
-          cp.addAction(editor.createOverwriteItemAction(item, T(ph), 0, 0));
-        }, "CortesAI overwrite");
-        if (ok !== false && !method) method = "overwrite";
-      } catch (e1) { errs.push("ow[" + c.clip + "]: " + ((e1 && e1.message) ? e1.message : String(e1))); }
-
-      // Método B: insert (si overwrite no funcionó)
-      if (ok === false) {
-        try {
-          ok = project.executeTransaction((cp) => {
-            cp.addAction(clip.createSetInPointAction(T(c.start)));
-            cp.addAction(clip.createSetOutPointAction(T(c.end)));
-            cp.addAction(editor.createInsertProjectItemAction(item, T(ph), 0, 0, false));
-          }, "CortesAI insert");
-          if (ok !== false && !method) method = "insert";
-        } catch (e2) { errs.push("ins[" + c.clip + "]: " + ((e2 && e2.message) ? e2.message : String(e2))); }
-      }
-
-      if (ok !== false) inserted++; else failed++;
-      playhead += Math.max(0.1, (c.end - c.start));
-      setSt("4/4 Colocando… " + inserted + "/" + lastMontage.cuts.length);
-      await wait(15);
-    }
-    firstErr = errs[0] || "";
-
-    const resumen = "Secuencia \"" + seqName + "\" · " + inserted + " colocados · " + failed + " fallaron" +
-          (method ? (" · método=" + method) : "") + " · " + fmt(playhead);
-    setSt(resumen + (firstErr ? (" · err: " + firstErr) : ""));
-
-    // Enviar diagnóstico completo a la ventana del motor (fácil de ver/capturar)
+    // Diagnóstico a la ventana del motor
     try {
       await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" },
-        body: "CONSTRUIR TIMELINE\n" + resumen + "\nPrimeros errores:\n" + errs.slice(0, 5).join("\n") });
+        body: "CONSTRUIR (subclips)\n" + resumen + (subErrs.length ? ("\n" + subErrs.slice(0, 5).join("\n")) : "") });
     } catch (e) {}
   } catch (err) {
     setSt("Error en [" + stage + "]: " + ((err && err.message) ? err.message : String(err)));
