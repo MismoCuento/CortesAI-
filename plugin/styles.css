@@ -68,7 +68,7 @@ input[type="text"]:focus, input[type="password"]:focus, .select:focus { outline:
 .btn-start { width: 100%; margin-top: 18px; padding: 11px; font-size: 13px; }
 
 /* Errors */
-.error-msg { margin-top: 10px; padding: 8px; background: #4a1f1f; border: 1px solid #7a2e2e; border-radius: 5px; color: #ffb3b3; font-size: 11px; }
+.error-msg { white-space: pre-line; margin-top: 10px; padding: 8px; background: #4a1f1f; border: 1px solid #7a2e2e; border-radius: 5px; color: #ffb3b3; font-size: 11px; }
 
 /* Progress */
 .progress-title { font-size: 14px; font-weight: 600; margin: 10px 0 12px; }

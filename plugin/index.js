@@ -143,8 +143,13 @@ async function realProcess(s) {
 
   if (engineOk) return processViaEngine(s);
 
-  // 3) Respaldo: modo directo (solo clips pequeños <24MB, sin FFmpeg)
-  return processDirect(s);
+  // Motor no disponible: mensaje claro y accionable (no usar modo directo con videos grandes)
+  let script = "";
+  try { script = await engineScriptPath(); } catch (e) {}
+  showProgressError("No pude conectar con el motor local.\n" +
+    "1) Debió abrirse una ventana de Terminal (el motor). Si dice 'Motor local en marcha', espera 3s y pulsa Iniciar otra vez.\n" +
+    "2) Si muestra un error, o no se abrió, ábrelo a mano: doble clic en:\n" + (script || "repo/engine/start-mac.command") +
+    "\n\n[diag] " + (lastEngineLaunch || "no se intentó arrancar"));
 }
 
 async function engineReachable() {
@@ -166,14 +171,19 @@ async function engineScriptPath() {
   return repo + sep + "engine" + sep + (isWin ? "start-windows.bat" : "start-mac.command");
 }
 
-// Arranca el motor automáticamente (abre el lanzador)
+// Arranca el motor automáticamente (abre el lanzador). Devuelve diagnóstico.
+let lastEngineLaunch = "";
 async function tryStartEngine() {
   try {
     const uxp = require("uxp");
     const script = await engineScriptPath();
-    await uxp.shell.openPath(script, "Iniciar el motor local de CortesAI");
+    const res = await uxp.shell.openPath(script, "Iniciar el motor local de CortesAI");
+    lastEngineLaunch = "openPath('" + script + "') → " + (res === "" ? "OK" : ("respuesta: " + res));
     return true;
-  } catch (e) { return false; }
+  } catch (e) {
+    lastEngineLaunch = "openPath error: " + ((e && e.message) ? e.message : String(e));
+    return false;
+  }
 }
 
 // Muestra el estado del motor en la pantalla de config
