@@ -399,6 +399,15 @@ function nameKeys(name) {
   return [n, n.toLowerCase(), noExt, noExt.toLowerCase()];
 }
 
+// Re-obtiene un ProjectItem FRESCO por nombre (evita 'script object is no longer valid')
+async function freshResolve(project, clipName) {
+  const all = await collectAllItems(await project.getRootItem(), []);
+  const map = {};
+  for (const it of all) { let nm = null; try { nm = it.name; } catch (e) {} if (nm) for (const k of nameKeys(nm)) if (!map[k]) map[k] = it; }
+  for (const k of nameKeys(clipName)) if (map[k]) return map[k];
+  return null;
+}
+
 // ---------- FASE 3: construir el montaje en el timeline de Premiere ----------
 async function buildTimeline() {
   const st = $("buildStatus");
@@ -461,22 +470,25 @@ async function buildTimeline() {
     const T = (s2) => ppro.TickTime.createWithSeconds(s2);
     const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
 
-    // 3) Crear un subclip RECORTADO por cada corte (createSubClipAction)
+    // 3) Crear un subclip RECORTADO por cada corte (ref fresca + 1 transacción por corte)
     setSt("3/5 Recortando " + lastMontage.cuts.length + " cortes…");
     stage = "createSubClips";
     const subNames = [], subErrs = [];
-    project.executeTransaction((cp) => {
-      lastMontage.cuts.forEach((c, i) => {
-        const item = resolve(c.clip);
-        if (!item) { subErrs.push("sin item: " + c.clip); return; }
-        try {
+    for (let i = 0; i < lastMontage.cuts.length; i++) {
+      const c = lastMontage.cuts[i];
+      const item = await freshResolve(project, c.clip);
+      if (!item) { subErrs.push("sin item: " + c.clip); continue; }
+      const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + c.clip.replace(/\.[^.]+$/, "");
+      try {
+        project.executeTransaction((cp) => {
           const clip = ppro.ClipProjectItem.cast(item);
-          const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + c.clip.replace(/\.[^.]+$/, "");
           cp.addAction(clip.createSubClipAction(nm, T(c.start), T(c.end), true, { takeVideo: true, takeAudio: true }));
-          subNames.push(nm);
-        } catch (e) { subErrs.push("sub[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
-      });
-    }, "CortesAI subclips");
+        }, "CortesAI subclip " + nm);
+        subNames.push(nm);
+      } catch (e) { subErrs.push("sub[" + c.clip + "]: " + ((e && e.message) ? e.message : String(e))); }
+      setSt("3/5 Recortando… " + subNames.length + "/" + lastMontage.cuts.length);
+      await wait(10);
+    }
 
     // 4) Localizar los subclips creados (recursivo + reintentos)
     setSt("4/5 Preparando cortes…");

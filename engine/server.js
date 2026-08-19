@@ -114,34 +114,50 @@ function targetSeconds(duration) {
   const n = parseFloat(d); return isNaN(n) ? Infinity : n;
 }
 
-// Ensambla los mejores momentos en UN montaje: 1 hook + cuerpo + 1 cta, sin pasarse de la duración
+// Ensambla el montaje: cada corte 4-6s, SIN repetir clips, estructura hook→cuerpo→cta, dentro de la duración
+const MINCUT = 4, MAXCUT = 6;
 function assembleMontage(perClip, settings) {
   const target = targetSeconds(settings.duration);
-  const all = [];
-  perClip.forEach(r => (r.cuts || []).forEach(c => all.push(Object.assign({}, c, { clip: r.video }))));
-  all.sort((a, b) => (b.score || 0) - (a.score || 0));   // mejor score primero
-  const len = (c) => Math.max(0.1, (c.end || 0) - (c.start || 0));
+
+  // 1) Normaliza cada candidato a 4-6s dentro de los límites de su clip
+  let all = [];
+  perClip.forEach(r => {
+    const clipDur = r.duration || 0;
+    (r.cuts || []).forEach(c => {
+      let start = Math.max(0, c.start || 0);
+      let end = c.end || 0;
+      if (end - start > MAXCUT) end = start + MAXCUT;                 // recorta lo largo a 6s
+      if (end - start < MINCUT) {                                     // extiende lo corto a 4s
+        end = start + MINCUT;
+        if (clipDur && end > clipDur) { end = clipDur; start = Math.max(0, clipDur - MINCUT); }
+      }
+      if (end - start >= 1) all.push(Object.assign({}, c, { clip: r.video, start: +start.toFixed(2), end: +end.toFixed(2) }));
+    });
+  });
+  all.sort((a, b) => (b.score || 0) - (a.score || 0));
+  const len = (c) => c.end - c.start;
 
   const bestHook = all.find(c => c.role === "hook") || null;
   const bestCta  = all.find(c => c.role === "cta")  || null;
   const ctaLen   = bestCta ? len(bestCta) : 0;
 
-  const chosen = []; let total = 0;
-  const isSame = (a, b) => a && b && a.clip === b.clip && a.start === b.start && a.end === b.end;
-
-  // 1) Hook (el mejor) al inicio
-  if (bestHook) { chosen.push(Object.assign({}, bestHook, { role: "hook" })); total += len(bestHook); }
-
-  // 2) Cuerpo: rellena con lo mejor restante, dejando espacio para el CTA
-  for (const c of all) {
-    if (isSame(c, bestHook) || isSame(c, bestCta)) continue;
-    if (total + len(c) + ctaLen > target) continue;
-    chosen.push(Object.assign({}, c, { role: "cuerpo" }));   // todo lo del medio es cuerpo
+  // 2) Selecciona: máximo 1 segmento por clip (no repetir tomas), hasta la duración objetivo
+  const usedClip = {}, chosen = []; let total = 0;
+  const tryAdd = (c, role, reserve) => {
+    if (!c || usedClip[c.clip]) return false;
+    if (chosen.length && (total + len(c) + (reserve || 0)) > target) return false;
+    usedClip[c.clip] = true;
+    chosen.push(Object.assign({}, c, { role: role }));
     total += len(c);
-  }
+    return true;
+  };
 
-  // 3) CTA (el mejor) al final
-  if (bestCta) { chosen.push(Object.assign({}, bestCta, { role: "cta" })); total += ctaLen; }
+  tryAdd(bestHook, "hook", ctaLen);
+  for (const c of all) {
+    if (c === bestHook || c === bestCta) continue;
+    tryAdd(c, "cuerpo", ctaLen);
+  }
+  tryAdd(bestCta, "cta", 0);
 
   return { cuts: chosen, totalDuration: total, target: (target === Infinity ? null : target) };
 }
@@ -272,7 +288,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.3" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.4" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
