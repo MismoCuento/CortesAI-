@@ -468,27 +468,37 @@ async function buildTimeline() {
     stage = "openSequence";
     try { await project.openSequence(seq); } catch (e) {}
 
-    // 4) Insertar cada corte en orden (recortado con in/out)
+    // 4) Insertar cada corte POR SEPARADO (fijar recorte + colocar en el playhead)
     setSt("4/4 Insertando " + lastMontage.cuts.length + " cortes…");
     stage = "getEditor";
     const editor = ppro.SequenceEditor.getEditor(seq);
     const T = (s) => ppro.TickTime.createWithSeconds(s);
-    let playhead = 0, inserted = 0;
-    stage = "executeTransaction";
-    const ok = project.executeTransaction((compound) => {
-      lastMontage.cuts.forEach(c => {
-        const item = resolve(c.clip);
-        if (!item) return;
-        const clip = ppro.ClipProjectItem.cast(item);
-        compound.addAction(clip.createSetInPointAction(T(c.start)));
-        compound.addAction(clip.createSetOutPointAction(T(c.end)));
-        compound.addAction(editor.createOverwriteItemAction(item, T(playhead), 0, 0));
-        playhead += Math.max(0.1, (c.end - c.start));
-        inserted++;
-      });
-    }, "CortesAI: construir montaje");
+    let playhead = 0, inserted = 0, failed = 0;
+    stage = "overwrite";
+    for (const c of lastMontage.cuts) {
+      const item = resolve(c.clip);
+      if (!item) { failed++; continue; }
+      const clip = ppro.ClipProjectItem.cast(item);
+      const ph = playhead;
+      try {
+        // (a) fijar in/out del clip (transacción propia para que quede aplicado)
+        project.executeTransaction((cp) => {
+          cp.addAction(clip.createSetInPointAction(T(c.start)));
+          cp.addAction(clip.createSetOutPointAction(T(c.end)));
+        }, "CortesAI in/out");
+        // (b) colocar el clip recortado al final del anterior
+        const ok = project.executeTransaction((cp) => {
+          cp.addAction(editor.createOverwriteItemAction(item, T(ph), 0, 0));
+        }, "CortesAI overwrite");
+        if (ok !== false) inserted++; else failed++;
+      } catch (e) { failed++; }
+      playhead += Math.max(0.1, (c.end - c.start));
+      setSt("4/4 Colocando… " + inserted + "/" + lastMontage.cuts.length);
+      await wait(15);
+    }
 
-    setSt("✅ Secuencia \"" + seqName + "\" · " + inserted + " cortes · " + fmt(playhead) + " · transacción=" + ok);
+    setSt("✅ Secuencia \"" + seqName + "\" · " + inserted + " cortes colocados" +
+          (failed ? (" · " + failed + " fallaron") : "") + " · " + fmt(playhead));
   } catch (err) {
     setSt("Error en [" + stage + "]: " + ((err && err.message) ? err.message : String(err)));
   } finally {
