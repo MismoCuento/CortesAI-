@@ -331,6 +331,22 @@ function showProgressError(m){
 }
 function hideProgressError(){ const e=$("progressError"); if(e) e.classList.add("hidden"); }
 
+// Recolecta TODOS los project items recursivamente (raíz + subcarpetas)
+async function collectAllItems(node, out) {
+  let kids = null;
+  try { kids = await node.getItems(); } catch (e) { kids = null; }
+  if (kids && kids.length) {
+    for (const c of kids) { out.push(c); await collectAllItems(c, out); }
+  }
+  return out;
+}
+// Variantes de un nombre para hacer coincidencia flexible
+function nameKeys(name) {
+  const n = String(name || "");
+  const noExt = n.replace(/\.[^.]+$/, "");
+  return [n, n.toLowerCase(), noExt, noExt.toLowerCase()];
+}
+
 // ---------- FASE 3: construir el montaje en el timeline de Premiere ----------
 async function buildTimeline() {
   const st = $("buildStatus");
@@ -360,25 +376,36 @@ async function buildTimeline() {
     const root = await project.getRootItem();
     await project.importFiles(paths, true, root, false);
 
-    // 2) Localizar los ProjectItems (con reintentos por si la importación tarda)
+    // 2) Localizar los ProjectItems (recursivo + flexible, con reintentos)
     setSt("2/4 Localizando clips…");
     stage = "getItems";
-    let byName = {};
+    let byName = {}, sampleNames = [];
+    const resolve = (nm) => { for (const k of nameKeys(nm)) { if (byName[k]) return byName[k]; } return null; };
     for (let attempt = 0; attempt < 12; attempt++) {
-      const items = await (await project.getRootItem()).getItems();
-      byName = {};
-      for (const it of items) { try { byName[await it.getName()] = it; } catch (e) {} }
-      if (uniqueNames.every(n => byName[n])) break;
+      const all = await collectAllItems(await project.getRootItem(), []);
+      byName = {}; sampleNames = [];
+      for (const it of all) {
+        let nm = null;
+        try { nm = await it.getName(); } catch (e) {}
+        if (!nm) continue;
+        sampleNames.push(nm);
+        for (const k of nameKeys(nm)) { if (!byName[k]) byName[k] = it; }
+      }
+      if (uniqueNames.every(n => resolve(n))) break;
       await wait(400);
     }
-    const missing = uniqueNames.filter(n => !byName[n]);
-    if (missing.length) throw new Error("No aparecieron estos clips importados: " + missing.join(", "));
+    const missing = uniqueNames.filter(n => !resolve(n));
+    if (missing.length) {
+      throw new Error("No encontré: " + missing.join(", ") +
+        " · El proyecto tiene " + sampleNames.length + " items. Ejemplos de nombres: " +
+        sampleNames.slice(0, 8).join(", "));
+    }
 
     // 3) Crear la secuencia
     setSt("3/4 Creando secuencia…");
     stage = "createSequenceFromMedia";
     const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
-    const firstClip = ppro.ClipProjectItem.cast(byName[uniqueNames[0]]);
+    const firstClip = ppro.ClipProjectItem.cast(resolve(uniqueNames[0]));
     const seq = await project.createSequenceFromMedia(seqName, [firstClip]);
     if (!seq) throw new Error("createSequenceFromMedia devolvió vacío.");
     stage = "openSequence";
@@ -393,7 +420,7 @@ async function buildTimeline() {
     stage = "executeTransaction";
     const ok = project.executeTransaction((compound) => {
       lastMontage.cuts.forEach(c => {
-        const item = byName[c.clip];
+        const item = resolve(c.clip);
         if (!item) return;
         const clip = ppro.ClipProjectItem.cast(item);
         compound.addAction(clip.createSetInPointAction(T(c.start)));
