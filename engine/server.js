@@ -98,29 +98,36 @@ async function analyze(tr, profile, settings, apiKey) {
   return out;
 }
 
-// ---- Procesar una carpeta (por ahora: el primer video) ----
+// ---- Procesar una carpeta (por ahora: el primer video válido) ----
+function isRealVideo(name) {
+  if (name.startsWith(".")) return false;          // ignora ocultos y AppleDouble "._"
+  return VIDEO_EXT.includes(name.split(".").pop().toLowerCase());
+}
 async function processFolder(folderPath, settings, profile) {
-  const files = fs.readdirSync(folderPath)
-    .filter(f => VIDEO_EXT.includes(f.split(".").pop().toLowerCase()))
-    .sort();
-  if (!files.length) throw new Error("No se encontraron videos en la carpeta.");
-  const limit = settings.limit || 1;                // prototipo: 1 video (escalable)
-  const results = [];
-  for (const name of files.slice(0, limit)) {
+  const files = fs.readdirSync(folderPath).filter(isRealVideo).sort();
+  if (!files.length) throw new Error("No se encontraron videos válidos en la carpeta.");
+  const limit = settings.limit || 1;               // prototipo: 1 video (escalable)
+  const results = [], skipped = [];
+  for (const name of files) {
+    if (results.length >= limit) break;
     const input = path.join(folderPath, name);
     const audio = path.join(os.tmpdir(), "cortesai_" + Date.now() + ".mp3");
     try {
       await extractAudio(input, audio);
       const tr = await transcribe(audio, settings.apiKey, settings.language);
-      const plan = await analyze(tr, profile, settings, apiKey_of(settings));
+      const plan = await analyze(tr, profile, settings, settings.apiKey);
       results.push({ video: name, language: tr.language, duration: tr.duration, cuts: plan.cuts, notes: plan.notes });
+    } catch (e) {
+      skipped.push({ video: name, error: e.message });   // salta el que falle y prueba el siguiente
     } finally {
-      try { fs.unlinkSync(audio); } catch (e) {}
+      try { fs.unlinkSync(audio); } catch (e2) {}
     }
   }
-  return { count: files.length, processed: results.length, results };
+  if (!results.length) {
+    throw new Error("No se pudo procesar ningún video. Primer error: " + (skipped[0] ? skipped[0].error : "desconocido"));
+  }
+  return { count: files.length, processed: results.length, skipped, results };
 }
-function apiKey_of(s){ return s.apiKey; }
 
 // ---- Servidor HTTP local ----
 function cors(res){

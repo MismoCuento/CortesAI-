@@ -82,7 +82,7 @@ async function pickFolder() {
     selectedFolder = folder;
     $("folderPath").value = folder.nativePath || folder.name;
     const entries = await folder.getEntries();
-    videoEntries = entries.filter(e => e.isFile && VIDEO_EXT.includes(extOf(e.name)));
+    videoEntries = entries.filter(e => e.isFile && !e.name.startsWith(".") && VIDEO_EXT.includes(extOf(e.name)));
     $("folderInfo").textContent = videoEntries.length ? ("✓ "+videoEntries.length+" video(s) encontrados") : "⚠️ No se encontraron videos en esta carpeta";
     hideConfigError();
   } catch(e){ showConfigError("No se pudo abrir la carpeta: "+e.message); }
@@ -315,7 +315,7 @@ function bind() {
   $("duration").addEventListener("change", () => { $("durationCustom").classList.toggle("hidden", $("duration").value!=="custom"); });
   document.querySelectorAll('input[name="transcribe"]').forEach(r => r.addEventListener("change", toggleApiKey));
   $("btnStart").addEventListener("click", start);
-  $("btnCancel").addEventListener("click", ()=>{ cancelRequested = true; });
+  $("btnCancel").addEventListener("click", ()=>{ cancelRequested = true; hideProgressError(); showView("config"); });
   $("btnNew").addEventListener("click", ()=> showView("config"));
 }
 
