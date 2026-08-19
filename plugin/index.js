@@ -342,8 +342,9 @@ async function buildTimeline() {
   catch (e) { setSt("Esta función solo funciona dentro de Premiere."); return; }
 
   $("btnBuild").disabled = true;
+  let stage = "inicio";
   try {
-    setSt("Abriendo proyecto…");
+    stage = "getActiveProject";
     const project = await ppro.Project.getActiveProject();
     if (!project) throw new Error("Abre o crea un proyecto en Premiere primero (Archivo → Nuevo → Proyecto).");
 
@@ -354,29 +355,43 @@ async function buildTimeline() {
     const paths = uniqueNames.map(n => folder + sep + n);
 
     // 1) Importar los clips únicos
-    setSt("Importando " + uniqueNames.length + " clips…");
+    setSt("1/4 Importando " + uniqueNames.length + " clips…");
+    stage = "importFiles";
     const root = await project.getRootItem();
     await project.importFiles(paths, true, root, false);
 
-    // 2) Mapear nombre → ProjectItem
-    const items = await root.getItems();
-    const byName = {};
-    for (const it of items) { try { byName[await it.getName()] = it; } catch (e) {} }
-    const firstItem = byName[uniqueNames[0]];
-    if (!firstItem) throw new Error("No se encontró el clip importado: " + uniqueNames[0]);
+    // 2) Localizar los ProjectItems (con reintentos por si la importación tarda)
+    setSt("2/4 Localizando clips…");
+    stage = "getItems";
+    let byName = {};
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const items = await (await project.getRootItem()).getItems();
+      byName = {};
+      for (const it of items) { try { byName[await it.getName()] = it; } catch (e) {} }
+      if (uniqueNames.every(n => byName[n])) break;
+      await wait(400);
+    }
+    const missing = uniqueNames.filter(n => !byName[n]);
+    if (missing.length) throw new Error("No aparecieron estos clips importados: " + missing.join(", "));
 
-    // 3) Crear la secuencia a partir del primer medio
-    setSt("Creando secuencia…");
-    const seqName = "CortesAI - " + lastMontage.name + " - montaje";
-    const firstClip = ppro.ClipProjectItem.cast(firstItem);
+    // 3) Crear la secuencia
+    setSt("3/4 Creando secuencia…");
+    stage = "createSequenceFromMedia";
+    const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
+    const firstClip = ppro.ClipProjectItem.cast(byName[uniqueNames[0]]);
     const seq = await project.createSequenceFromMedia(seqName, [firstClip]);
-    const editor = ppro.SequenceEditor.getEditor(seq);
+    if (!seq) throw new Error("createSequenceFromMedia devolvió vacío.");
+    stage = "openSequence";
+    try { await project.openSequence(seq); } catch (e) {}
 
     // 4) Insertar cada corte en orden (recortado con in/out)
-    setSt("Insertando " + lastMontage.cuts.length + " cortes…");
+    setSt("4/4 Insertando " + lastMontage.cuts.length + " cortes…");
+    stage = "getEditor";
+    const editor = ppro.SequenceEditor.getEditor(seq);
     const T = (s) => ppro.TickTime.createWithSeconds(s);
-    let playhead = 0;
-    project.executeTransaction((compound) => {
+    let playhead = 0, inserted = 0;
+    stage = "executeTransaction";
+    const ok = project.executeTransaction((compound) => {
       lastMontage.cuts.forEach(c => {
         const item = byName[c.clip];
         if (!item) return;
@@ -385,13 +400,13 @@ async function buildTimeline() {
         compound.addAction(clip.createSetOutPointAction(T(c.end)));
         compound.addAction(editor.createOverwriteItemAction(item, T(playhead), 0, 0));
         playhead += Math.max(0.1, (c.end - c.start));
+        inserted++;
       });
     }, "CortesAI: construir montaje");
 
-    try { await project.openSequence(seq); } catch (e) {}
-    setSt("✅ Secuencia \"" + seqName + "\" creada en tu timeline (" + lastMontage.cuts.length + " cortes, " + fmt(playhead) + ").");
+    setSt("✅ Secuencia \"" + seqName + "\" · " + inserted + " cortes · " + fmt(playhead) + " · transacción=" + ok);
   } catch (err) {
-    setSt("Error: " + ((err && err.message) ? err.message : String(err)));
+    setSt("Error en [" + stage + "]: " + ((err && err.message) ? err.message : String(err)));
   } finally {
     $("btnBuild").disabled = false;
   }
