@@ -129,6 +129,58 @@ function assembleMontage(perClip, settings) {
   return { cuts: chosen, totalDuration: total, target: (target === Infinity ? null : target) };
 }
 
+// ---- Análisis VISUAL (para video sin diálogo: anuncios, b-roll) ----
+// Detecta cambios de escena con FFmpeg y devuelve tiempos + duración total.
+function detectScenes(input) {
+  return new Promise((resolve) => {
+    if (!FFMPEG) return resolve({ times: [], duration: 0 });
+    const args = ["-i", input, "-filter:v", "select='gt(scene,0.3)',showinfo", "-an", "-f", "null", "-"];
+    const p = spawn(FFMPEG, args);
+    let err = "";
+    p.stderr.on("data", d => { err += d.toString(); });
+    p.on("error", () => resolve({ times: [], duration: 0 }));
+    p.on("close", () => {
+      const times = [];
+      const re = /pts_time:([0-9.]+)/g; let m;
+      while ((m = re.exec(err))) times.push(parseFloat(m[1]));
+      let dur = 0;
+      const dm = /Duration:\s*(\d+):(\d+):(\d+\.?\d*)/.exec(err);
+      if (dm) dur = (+dm[1]) * 3600 + (+dm[2]) * 60 + parseFloat(dm[3]);
+      resolve({ times, duration: dur });
+    });
+  });
+}
+// Convierte los cambios de escena en tomas (shots). Si no hay escenas, trocea.
+function scenesToShots(times, duration, profile) {
+  const maxC = (profile && profile.maxClip) ? profile.maxClip : 6;
+  const clean = times.filter(t => t > 0.2 && t < duration).sort((a, b) => a - b);
+  const bounds = [0].concat(clean).concat([duration]);
+  let shots = [];
+  for (let i = 0; i < bounds.length - 1; i++) shots.push({ start: bounds[i], end: bounds[i + 1] });
+  if (shots.length <= 1 && duration > 0) {   // sin cambios de escena → trocear en tomas
+    shots = [];
+    for (let t = 0; t < duration; t += maxC) shots.push({ start: t, end: Math.min(t + maxC, duration) });
+  }
+  return shots;
+}
+// Puntúa las tomas y las recorta a la duración ideal del perfil.
+function shotCandidates(shots, profile) {
+  const minC = (profile && profile.minClip) ? profile.minClip : 1;
+  const maxC = (profile && profile.maxClip) ? profile.maxClip : 6;
+  const ideal = (minC + maxC) / 2;
+  const out = [];
+  for (const s of shots) {
+    let len = s.end - s.start;
+    if (len < 0.8) continue;                              // descarta parpadeos/transiciones
+    const end = s.start + Math.min(len, maxC);            // recorta tomas largas
+    len = end - s.start;
+    const score = 0.4 + 0.4 * (1 - Math.min(1, Math.abs(len - ideal) / ideal)); // ~0.4–0.8
+    out.push({ start: Number(s.start.toFixed(2)), end: Number(end.toFixed(2)), role: "cuerpo",
+               score: Number(score.toFixed(2)), reason: "toma visual", source: "visual" });
+  }
+  return out;
+}
+
 async function processFolder(folderPath, settings, profile) {
   const files = fs.readdirSync(folderPath).filter(isRealVideo).sort();
   if (!files.length) throw new Error("No se encontraron videos válidos en la carpeta.");
@@ -139,20 +191,32 @@ async function processFolder(folderPath, settings, profile) {
     const input = path.join(folderPath, name);
     const audio = path.join(os.tmpdir(), "cortesai_" + Date.now() + "_" + Math.floor(perClip.length) + ".mp3");
     try {
-      await extractAudio(input, audio);
-      const tr = await transcribe(audio, settings.apiKey, settings.language);
-      const plan = await analyze(tr, profile, settings, settings.apiKey);
-      let cuts = plan.cuts || [];
-      const textLen = ((tr.text || "").trim()).length;
-      // Plan B: si no hay diálogo (o la IA no eligió nada), usa un fragmento visual del clip.
+      // 1) Intento por AUDIO (diálogo): transcribir + analizar
+      let audioCuts = [], textLen = 0, dur = 0;
+      try {
+        await extractAudio(input, audio);
+        const tr = await transcribe(audio, settings.apiKey, settings.language);
+        dur = tr.duration || 0;
+        textLen = ((tr.text || "").trim()).length;
+        if (textLen > 4) {   // hay diálogo real
+          const plan = await analyze(tr, profile, settings, settings.apiKey);
+          audioCuts = (plan.cuts || []).map(c => Object.assign({ source: "audio" }, c));
+        }
+      } catch (audioErr) { /* seguimos con visual */ }
+
+      // 2) Si no hubo diálogo útil → análisis VISUAL (tomas por cambio de escena)
+      let cuts = audioCuts;
+      let mode = "audio";
       if (!cuts.length) {
-        const maxLen = (profile && profile.maxClip) ? profile.maxClip : 8;
-        const clipDur = tr.duration || maxLen;
-        const end = Math.min(clipDur, maxLen);
-        if (end > 0.3) cuts = [{ start: 0, end: end, role: "cuerpo", score: 0.3, reason: "clip sin diálogo: fragmento visual" }];
+        const sc = await detectScenes(input);
+        if (!dur) dur = sc.duration;
+        const shots = scenesToShots(sc.times, sc.duration || dur, profile);
+        cuts = shotCandidates(shots, profile);
+        mode = "visual";
       }
-      perClip.push({ video: name, language: tr.language, duration: tr.duration, cuts: cuts, notes: plan.notes });
-      console.log("  ✓ " + name + " (" + cuts.length + " momentos · audio " + Math.round(tr.duration || 0) + "s · texto " + textLen + " car.)");
+
+      perClip.push({ video: name, duration: dur, cuts: cuts, mode: mode });
+      console.log("  ✓ " + name + " (" + cuts.length + " tomas · " + mode + " · " + Math.round(dur) + "s · texto " + textLen + ")");
     } catch (e) {
       skipped.push({ video: name, error: e.message });
       console.log("  ✗ " + name + " (saltado: " + e.message.slice(0, 80) + ")");
@@ -179,7 +243,7 @@ const server = http.createServer((req, res) => {
 
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.4.1" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.0" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
