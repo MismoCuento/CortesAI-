@@ -545,6 +545,38 @@ async function buildTimeline() {
   }
 }
 
+// Genera un script ExtendScript (.jsx) que arma el timeline recortado de forma confiable
+async function generateJsx() {
+  const st = $("jsxStatus");
+  const setJ = (t) => { st.textContent = t; };
+  if (!lastMontage || !lastMontage.cuts.length) { setJ("No hay montaje para generar el script."); return; }
+
+  // 1 corte por nombre de video (sin duplicados)
+  const seen = {}, cuts = [];
+  lastMontage.cuts.forEach(c => {
+    const k = normName(c.clip);
+    if (seen[k]) return; seen[k] = true;
+    cuts.push({ file: c.clip, inSec: +(+c.start).toFixed(2), outSec: +(+c.end).toFixed(2) });
+  });
+
+  $("btnJsx").disabled = true;
+  try {
+    setJ("Generando script…");
+    const r = await fetch(ENGINE + "/jsx", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: lastMontage.folder, cuts: cuts, seqName: "CortesAI " + (lastMontage.name || "") })
+    });
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || ("motor respondió " + r.status));
+    setJ("✅ Script creado (" + cuts.length + " cortes):\n" + data.path +
+         "\n\nEn Premiere:\nArchivo → Comandos/Scripts → Ejecutar archivo de script → elige ese .jsx\n(Debe tener un proyecto abierto.)");
+  } catch (e) {
+    setJ("Error: " + ((e && e.message) ? e.message : String(e)) + "\n(¿El motor local está corriendo?)");
+  } finally {
+    $("btnJsx").disabled = false;
+  }
+}
+
 // ---------- Eventos ----------
 function toggleApiKey(){
   const isApi = document.querySelector('input[name="transcribe"]:checked').value === "api";
@@ -558,6 +590,7 @@ function bind() {
   $("btnStart").addEventListener("click", start);
   $("btnCancel").addEventListener("click", ()=>{ cancelRequested = true; hideProgressError(); showView("config"); });
   $("btnBuild").addEventListener("click", buildTimeline);
+  $("btnJsx").addEventListener("click", generateJsx);
   $("btnNew").addEventListener("click", ()=> { $("buildStatus").textContent = ""; showView("config"); });
 }
 

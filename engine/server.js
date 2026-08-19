@@ -266,6 +266,53 @@ async function processFolder(folderPath, settings, profile) {
   return { totalVideos: files.length, processed: perClip.length, skipped, perClip, montage };
 }
 
+// ---- Genera un script ExtendScript (.jsx) que arma el timeline recortado ----
+function buildJsx(folder, cuts, seqName) {
+  const data = JSON.stringify(cuts);
+  const F = JSON.stringify(folder);
+  const N = JSON.stringify(seqName);
+  return [
+    "#target premierepro",
+    "(function () {",
+    "  var proj = app.project;",
+    "  if (!proj) { alert('CortesAI: abre un proyecto en Premiere primero.'); return; }",
+    "  var SEP = '/';",
+    "  var FOLDER = " + F + ";",
+    "  var CUTS = " + data + ";",
+    "  function findByName(item, name) {",
+    "    try {",
+    "      var kids = item.children; if (!kids) return null;",
+    "      for (var i = 0; i < kids.numItems; i++) {",
+    "        var it = kids[i];",
+    "        if (it && it.name === name) return it;",
+    "        if (it && it.type === 2 && it.children) { var f = findByName(it, name); if (f) return f; }",
+    "      }",
+    "    } catch (e) {}",
+    "    return null;",
+    "  }",
+    "  var toImport = [];",
+    "  for (var i = 0; i < CUTS.length; i++) {",
+    "    if (!findByName(proj.rootItem, CUTS[i].file)) toImport.push(FOLDER + SEP + CUTS[i].file);",
+    "  }",
+    "  if (toImport.length > 0) { try { proj.importFiles(toImport, true, proj.rootItem, false); } catch (e) {} }",
+    "  try { proj.createNewSequence(" + N + ", 'cortesai_' + (new Date()).getTime()); } catch (e) {}",
+    "  var seq = proj.activeSequence;",
+    "  if (!seq) { alert('CortesAI: no se pudo crear la secuencia.'); return; }",
+    "  var vTrack = seq.videoTracks[0];",
+    "  var placed = 0, playhead = 0.0;",
+    "  for (var i = 0; i < CUTS.length; i++) {",
+    "    var item = findByName(proj.rootItem, CUTS[i].file);",
+    "    if (!item) continue;",
+    "    try { item.setInPoint(CUTS[i].inSec, 4); item.setOutPoint(CUTS[i].outSec, 4); } catch (e) {}",
+    "    try { vTrack.overwriteClip(item, playhead); placed++; } catch (e) {}",
+    "    playhead += (CUTS[i].outSec - CUTS[i].inSec);",
+    "  }",
+    "  alert('CortesAI: montaje listo. Cortes colocados: ' + placed + ' / ' + CUTS.length + '.');",
+    "})();",
+    ""
+  ].join("\n");
+}
+
 // ---- Servidor HTTP local ----
 function cors(res){
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -276,6 +323,24 @@ const server = http.createServer((req, res) => {
   cors(res);
   if (req.method === "OPTIONS") { res.statusCode = 204; return res.end(); }
 
+  if (req.method === "POST" && req.url === "/jsx") {
+    let body = "";
+    req.on("data", c => { body += c; if (body.length > 5e6) req.destroy(); });
+    req.on("end", () => {
+      res.setHeader("Content-Type", "application/json");
+      try {
+        const { folder, cuts, seqName } = JSON.parse(body);
+        if (!folder || !cuts || !cuts.length) throw new Error("faltan datos");
+        const jsxPath = path.join(folder, "CortesAI_montaje.jsx");
+        fs.writeFileSync(jsxPath, buildJsx(folder, cuts, seqName || "CortesAI montaje"));
+        console.log("\n[JSX] Script generado: " + jsxPath + " (" + cuts.length + " cortes)\n");
+        res.end(JSON.stringify({ ok: true, path: jsxPath }));
+      } catch (e) {
+        res.statusCode = 500; res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
   if (req.method === "POST" && req.url === "/log") {
     let body = "";
     req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
@@ -290,7 +355,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.5.5" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.0" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
