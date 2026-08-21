@@ -69,20 +69,17 @@ async function analyze(tr, profile, settings, apiKey) {
     ? "libre, solo lo mejor"
     : (settings.duration + (String(settings.duration).includes(":") ? "" : " segundos"));
   const sys = [
-    "Eres un editor de video viral experto. Recibes la transcripción con marcas de tiempo de UN video y eliges sus MEJORES momentos para un montaje que ENGANCHE.",
-    "OBJETIVO: el resultado debe captar la atención al instante y mantenerla (contenido 'dopamínico'). Prioriza momentos con ENERGÍA, EMOCIÓN, SORPRESA, ACCIÓN, INTERACCIÓN entre personas, reacciones, o frases con gancho. Evita momentos planos, lentos, silencios o relleno.",
-    "REGLA CLAVE: elige SOLO momentos donde se DICE algo con contenido (una frase que aporta, una reacción, una emoción) o se MUESTRA algo claramente relevante. NO elijas cortes sin sentido, ambiguos, de transición o de relleno.",
-    "Duración de cada corte: entre 2 y 6 segundos. Un corte de 2-3s está perfecto si muestra algo relevante; nunca más de 6s.",
-    "Sé exigente: mejor 5 cortes con sentido que 15 vacíos. Si un video no tiene nada relevante, no elijas nada de él.",
-    "Tipo de video: " + (p.label || settings.videoType) + ".",
-    "Criterio: " + (p.scoringPrompt || "Prioriza los momentos más relevantes e interesantes."),
-    p.keep ? ("Prioriza: " + p.keep.join(", ") + ".") : "",
-    p.remove ? ("Elimina: " + p.remove.join(", ") + ".") : "",
-    (p.respectSentences ? "Respeta frases completas; no cortes a mitad de una idea." : "Puedes hacer cortes ágiles."),
-    p.structure ? ("Roles posibles: hook, gancho, cuerpo, cta (según " + p.structure + ").") : "",
-    "Devuelve VARIOS segmentos candidatos de este video, cada uno coherente, ordenados por score. No intentes llenar una duración fija: solo marca lo bueno (varios clips distintos se combinarán después).",
-    'Devuelve SOLO JSON: { "cuts": [ { "start": number_segundos, "end": number_segundos, "role": "hook|gancho|cuerpo|cta", "score": number_0a1, "reason": "breve" } ], "notes": "breve" }.',
-    "Los start/end deben caer dentro de la transcripción y en orden."
+    "Eres un editor de video experto. Analiza de forma MULTIMODAL, CONTEXTUAL y ORIENTADA AL OBJETIVO: combina lo que se DICE (transcripción), CÓMO se dice (tono, énfasis, emoción, pausas) y —cuando esté disponible— lo que se VE, para elegir los fragmentos más relevantes de ESTE video y construir una edición coherente, dinámica y atractiva.",
+    "1) TIPO Y OBJETIVO: este video es de tipo '" + (p.label || settings.videoType) + "'. Adapta el criterio de relevancia a ese objetivo (NO uses el mismo criterio para todos los tipos). Criterio del perfil: " + (p.scoringPrompt || "prioriza lo más relevante e interesante.") + (p.keep ? (" Prioriza: " + p.keep.join(", ") + ".") : "") + (p.remove ? (" Evita: " + p.remove.join(", ") + ".") : ""),
+    "2) AUDIO/TEXTO: identifica frases importantes, información nueva, cambios de tono, énfasis, emoción, preguntas y respuestas, picos de energía. Descarta silencios, muletillas, repeticiones, errores y relleno.",
+    "3) FUNCIÓN: cada corte debe tener una función concreta hacia el objetivo. No conserves un segmento solo porque suene interesante; determina qué aporta y cómo se conecta con lo demás.",
+    "4) DURACIÓN: cada corte entre 2 y 6 segundos (2-3s si dice/muestra algo puntual y relevante; NUNCA más de 6s).",
+    "5) PUNTOS DE CORTE naturales y precisos: no cortes a mitad de palabra, frase, idea, gesto o acción; usa pausas naturales y finales de frase.",
+    "6) SÉ EXIGENTE: mejor pocos cortes CON SENTIDO que muchos vacíos. Si el video no tiene nada relevante, NO elijas nada de él.",
+    (p.respectSentences ? "Respeta frases completas; no cortes ideas a la mitad." : ""),
+    p.structure ? ("Asigna a cada corte un rol según la estructura " + p.structure + ": hook (atención inmediata), gancho (curiosidad/promesa), cuerpo (desarrollo/contenido), cta (cierre/acción).") : "",
+    "7) PUNTÚA cada corte de 0 a 1 evaluando: relevancia para el objetivo, relevancia del audio/texto, impacto/retención, energía/ritmo y calidad técnica. En 'reason' explica breve por qué se conserva.",
+    "Devuelve SOLO JSON: { \"cuts\": [ { \"start\": number_seg, \"end\": number_seg, \"role\": \"hook|gancho|cuerpo|cta\", \"score\": number_0a1, \"reason\": \"breve\" } ], \"notes\": \"breve\" }. Los start/end deben caer dentro de la transcripción."
   ].filter(Boolean).join("\n");
   const user = "Transcripción (segmentos, tiempos en segundos):\n" +
     (tr.segments || []).map(x => "[" + x.start.toFixed(1) + "-" + x.end.toFixed(1) + "] " + (x.text||"").trim()).join("\n");
@@ -359,7 +356,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.1" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.2" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
