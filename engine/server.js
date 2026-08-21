@@ -21,7 +21,7 @@ const PORT = 8765;
 const VIDEO_EXT = ["mp4","mov","m4v","avi","mkv","mxf","mts","wmv","webm","flv"];
 const GROQ = "https://api.groq.com/openai/v1";
 const MODEL_STT = "whisper-large-v3-turbo";
-const MODEL_LLM = "openai/gpt-oss-20b";
+const MODEL_LLM = "openai/gpt-oss-120b";   // modelo grande de Groq (gratis) → mejor selección
 
 // ---- Localizar FFmpeg ----
 function findFfmpeg() {
@@ -384,7 +384,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.6" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.7" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
