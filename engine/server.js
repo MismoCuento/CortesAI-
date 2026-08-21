@@ -140,25 +140,38 @@ function assembleMontage(perClip, settings) {
   const bestCta  = all.find(c => c.role === "cta")  || null;
   const ctaLen   = bestCta ? len(bestCta) : 0;
 
-  // 2) Selecciona: máximo 1 segmento por clip (no repetir tomas), hasta la duración objetivo
-  const usedClip = {}, chosen = []; let total = 0;
+  // 2) Selección en 2 pasadas: primero variedad (1 por video), luego RELLENA hasta la duración objetivo.
+  const MIN_SCORE = 0.28;   // compuerta suave
+  const MAX_PER_CLIP = 3;   // hasta 3 momentos DISTINTOS del mismo video si hacen falta para llenar
+  const perClipCount = {}, chosen = []; let total = 0;
+  const overlaps = (c) => chosen.some(x => x.clip === c.clip && !(c.end <= x.start || c.start >= x.end));
   const tryAdd = (c, role, reserve) => {
-    if (!c || usedClip[c.clip]) return false;
+    if (!c) return false;
+    if (overlaps(c)) return false;                                  // no encimar segmentos del mismo video
+    if ((perClipCount[c.clip] || 0) >= MAX_PER_CLIP) return false;
     if (chosen.length && (total + len(c) + (reserve || 0)) > target) return false;
-    usedClip[c.clip] = true;
+    perClipCount[c.clip] = (perClipCount[c.clip] || 0) + 1;
     chosen.push(Object.assign({}, c, { role: role }));
     total += len(c);
     return true;
   };
 
-  const MIN_SCORE = 0.28;  // compuerta suave: descarta lo muy malo, pero deja pasar 1 buen momento por video
-  tryAdd(bestHook, "hook", ctaLen);
+  tryAdd(bestHook, "hook", ctaLen);                 // hook al inicio
+  // Pasada 1: lo mejor de CADA video (variedad)
+  const usedOnce = {};
   for (const c of all) {
+    if (c === bestHook || c === bestCta || usedOnce[c.clip]) continue;
+    if ((c.score || 0) < MIN_SCORE) continue;
+    if (tryAdd(c, "cuerpo", ctaLen)) usedOnce[c.clip] = true;
+  }
+  // Pasada 2: rellena hasta la duración objetivo con los siguientes mejores (distintos, sin encimar)
+  for (const c of all) {
+    if (total >= (target - ctaLen)) break;
     if (c === bestHook || c === bestCta) continue;
-    if ((c.score || 0) < MIN_SCORE) continue;   // "¿sirve o no?": solo lo bueno
+    if ((c.score || 0) < MIN_SCORE) continue;
     tryAdd(c, "cuerpo", ctaLen);
   }
-  tryAdd(bestCta, "cta", 0);
+  tryAdd(bestCta, "cta", 0);                        // cta al final
 
   return { cuts: chosen, totalDuration: total, target: (target === Infinity ? null : target) };
 }
@@ -356,7 +369,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.3" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.4" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";

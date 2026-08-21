@@ -440,12 +440,12 @@ async function buildTimeline() {
     const folder = lastMontage.folder;
     const sep = folder.indexOf("\\") >= 0 ? "\\" : "/";
 
-    // GARANTÍA: 1 corte por nombre de video (nada duplicado en el timeline)
-    const seenClip = {};
+    // Quita solo cortes IDÉNTICOS (mismo video + mismo in/out). Permite varios momentos distintos del mismo video.
+    const seenCut = {};
     const cuts = lastMontage.cuts.filter(c => {
-      const k = normName(c.clip);
-      if (seenClip[k]) return false;
-      seenClip[k] = true;
+      const k = normName(c.clip) + "|" + c.start + "|" + c.end;
+      if (seenCut[k]) return false;
+      seenCut[k] = true;
       return true;
     });
 
