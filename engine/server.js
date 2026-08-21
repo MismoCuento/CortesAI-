@@ -71,7 +71,9 @@ async function analyze(tr, profile, settings, apiKey) {
   const sys = [
     "Eres un editor de video viral experto. Recibes la transcripción con marcas de tiempo de UN video y eliges sus MEJORES momentos para un montaje que ENGANCHE.",
     "OBJETIVO: el resultado debe captar la atención al instante y mantenerla (contenido 'dopamínico'). Prioriza momentos con ENERGÍA, EMOCIÓN, SORPRESA, ACCIÓN, INTERACCIÓN entre personas, reacciones, o frases con gancho. Evita momentos planos, lentos, silencios o relleno.",
-    "Sé exigente: mejor pocos segmentos MUY buenos que muchos mediocres. Segmentos cortos y potentes (2-6s) funcionan mejor.",
+    "REGLA CLAVE: elige SOLO momentos donde se DICE algo con contenido (una frase que aporta, una reacción, una emoción) o se MUESTRA algo claramente relevante. NO elijas cortes sin sentido, ambiguos, de transición o de relleno.",
+    "Duración de cada corte: entre 2 y 6 segundos. Un corte de 2-3s está perfecto si muestra algo relevante; nunca más de 6s.",
+    "Sé exigente: mejor 5 cortes con sentido que 15 vacíos. Si un video no tiene nada relevante, no elijas nada de él.",
     "Tipo de video: " + (p.label || settings.videoType) + ".",
     "Criterio: " + (p.scoringPrompt || "Prioriza los momentos más relevantes e interesantes."),
     p.keep ? ("Prioriza: " + p.keep.join(", ") + ".") : "",
@@ -114,8 +116,8 @@ function targetSeconds(duration) {
   const n = parseFloat(d); return isNaN(n) ? Infinity : n;
 }
 
-// Ensambla el montaje: cada corte 4-6s, SIN repetir clips, estructura hook→cuerpo→cta, dentro de la duración
-const MINCUT = 4, MAXCUT = 6;
+// Ensambla el montaje: cada corte 2-6s (solo lo relevante), SIN repetir clips, estructura, dentro de la duración
+const MINCUT = 2, MAXCUT = 6;
 function assembleMontage(perClip, settings) {
   const target = targetSeconds(settings.duration);
 
@@ -209,7 +211,9 @@ function shotCandidates(shots, profile) {
     if (len < 0.8) continue;                              // descarta parpadeos/transiciones
     const end = s.start + Math.min(len, maxC);            // recorta tomas largas
     len = end - s.start;
-    const score = 0.4 + 0.4 * (1 - Math.min(1, Math.abs(len - ideal) / ideal)); // ~0.4–0.8
+    // Puntaje bajo a las tomas puramente visuales: el diálogo real (audio) tiene prioridad,
+    // y la compuerta de calidad descarta las tomas "porque sí".
+    const score = 0.3 + 0.15 * (1 - Math.min(1, Math.abs(len - ideal) / ideal)); // ~0.30–0.45
     out.push({ start: Number(s.start.toFixed(2)), end: Number(end.toFixed(2)), role: "cuerpo",
                score: Number(score.toFixed(2)), reason: "toma visual", source: "visual" });
   }
@@ -355,7 +359,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.0" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.1" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
