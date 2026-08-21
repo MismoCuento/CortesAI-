@@ -608,7 +608,6 @@ function bind() {
   $("btnStart").addEventListener("click", start);
   $("btnCancel").addEventListener("click", ()=>{ cancelRequested = true; hideProgressError(); showView("config"); });
   $("btnBuild").addEventListener("click", buildTimeline);
-  $("btnJsx").addEventListener("click", generateJsx);
   $("btnNew").addEventListener("click", ()=> { $("buildStatus").textContent = ""; showView("config"); });
 }
 
