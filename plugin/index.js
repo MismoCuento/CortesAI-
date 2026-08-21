@@ -498,51 +498,64 @@ async function buildTimeline() {
 
     const T = (s2) => ppro.TickTime.createWithSeconds(s2);
     const seqName = "CortesAI montaje " + new Date().toLocaleTimeString();
+    let notes = [];
 
-    // 3) Crear la secuencia con los clips (completos) en el orden del montaje
-    setSt("3/4 Creando secuencia…");
-    stage = "createSequenceFromMedia";
-    const media = cuts.map(c => resolve(c.clip)).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
+    // 3) Reunir los ClipProjectItem (await ANTES del lock)
+    setSt("3/5 Preparando cortes…");
+    stage = "gather";
+    const gathered = [];
+    for (let i = 0; i < cuts.length; i++) gathered.push(await freshResolve(project, cuts[i].clip));
+
+    // 4) Crear SUBCLIPS ya recortados (dentro de lockedAccess, síncrono) → sin huecos al montarlos
+    setSt("4/5 Recortando cortes…");
+    stage = "subclips";
+    const subNames = [];
+    try {
+      project.lockedAccess(() => {
+        project.executeTransaction((cp) => {
+          for (let i = 0; i < cuts.length; i++) {
+            const item = gathered[i];
+            if (!item) { notes.push("sin item: " + cuts[i].clip); continue; }
+            const clip = ppro.ClipProjectItem.cast(item);
+            const nm = "CAI_" + String(i + 1).padStart(3, "0") + "_" + cuts[i].clip.replace(/\.[^.]+$/, "");
+            cp.addAction(clip.createSubClipAction(nm, T(cuts[i].start), T(cuts[i].end), true, { takeVideo: true, takeAudio: true }));
+            subNames.push(nm);
+          }
+        }, "CortesAI subclips");
+      });
+    } catch (e) { notes.push("subTx: " + ((e && e.message) ? e.message : String(e))); }
+
+    // 5) Localizar subclips y armar la secuencia (pegados, sin huecos)
+    setSt("5/5 Armando secuencia…");
+    stage = "findSubs";
+    let subByName = {};
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const all = await collectAllItems(await project.getRootItem(), []);
+      subByName = {};
+      for (const it of all) { let nm = null; try { nm = it.name; } catch (e) {} if (nm) subByName[nm] = it; }
+      if (subNames.length && subNames.every(n => subByName[n])) break;
+      await wait(300);
+    }
+    const subItems = subNames.map(n => subByName[n]).filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
+
+    stage = "createSequence";
+    let media = subItems, trimmed = true;
+    if (!subItems.length) {  // respaldo: clips completos si el recorte falló
+      trimmed = false;
+      media = gathered.filter(Boolean).map(it => ppro.ClipProjectItem.cast(it));
+    }
     const seq = await project.createSequenceFromMedia(seqName, media);
-    if (!seq) throw new Error("createSequenceFromMedia devolvió vacío (media=" + media.length + ")");
-
-    // 4) Recortar los clips del timeline con el PATRÓN CORRECTO de UXP:
-    //    reunir objetos con await ANTES, y hacer las acciones SÍNCRONAS dentro de lockedAccess+executeTransaction.
-    setSt("4/4 Recortando en el timeline…");
-    stage = "getTrackItems";
-    let trimmed = 0, trimErrs = [];
-    const vt = await seq.getVideoTrack(0);
-    let titems = null;
-    try { titems = await vt.getTrackItems(1, false); } catch (e) { try { titems = await vt.getTrackItems(); } catch (e2) { titems = null; } }
-
-    if (titems && titems.length) {
-      const n = Math.min(titems.length, cuts.length);
-      stage = "lockedAccess";
-      try {
-        project.lockedAccess(() => {
-          project.executeTransaction((cp) => {
-            let playhead = 0;
-            for (let i = 0; i < n; i++) {
-              const ti = titems[i], c = cuts[i];
-              cp.addAction(ti.createSetInPointAction(T(c.start)));
-              cp.addAction(ti.createSetOutPointAction(T(c.end)));
-              cp.addAction(ti.createSetStartAction(T(playhead)));
-              playhead += Math.max(0.1, (c.end - c.start));
-              trimmed++;
-            }
-          }, "CortesAI recorte");
-        });
-      } catch (e) { trimErrs.push("trim: " + ((e && e.message) ? e.message : String(e))); trimmed = 0; }
-    } else { trimErrs.push("sin track items para recortar"); }
-
-    stage = "openSequence";
+    if (!seq) throw new Error("createSequenceFromMedia vacío (media=" + media.length + ", nota=" + (notes[0] || "-") + ")");
     try { await project.openSequence(seq); } catch (e) {}
 
-    const resumen = "Secuencia creada · " + media.length + " clips · recortados=" + trimmed +
-          (trimErrs.length ? (" · err: " + trimErrs[0]) : " (OK, 4-6s)");
+    let placed = "?";
+    try { const vt = await seq.getVideoTrack(0); let tis; try { tis = await vt.getTrackItems(1, false); } catch (e) { tis = await vt.getTrackItems(); } placed = (tis && tis.length != null) ? String(tis.length) : "?"; } catch (e) {}
+
+    const resumen = "Secuencia · " + placed + " clips · " + (trimmed ? "recortados, sin huecos" : "completos (respaldo)") +
+          (notes.length ? (" · nota: " + notes[0]) : "");
     setSt("✅ " + resumen);
     try { await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" },
-      body: "CONSTRUIR\n" + resumen + (trimErrs.length ? ("\n" + trimErrs.slice(0, 5).join("\n")) : "") }); } catch (e) {}
+      body: "CONSTRUIR\n" + resumen + (notes.length ? ("\n" + notes.slice(0, 3).join("\n")) : "") }); } catch (e) {}
   } catch (err) {
     setSt("Error en [" + stage + "]: " + ((err && err.message) ? err.message : String(err)));
   } finally {
