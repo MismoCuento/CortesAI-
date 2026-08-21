@@ -506,27 +506,32 @@ async function buildTimeline() {
     const seq = await project.createSequenceFromMedia(seqName, media);
     if (!seq) throw new Error("createSequenceFromMedia devolvió vacío (media=" + media.length + ")");
 
-    // 4) Recortar TODOS los clips del timeline en UNA sola transacción (sin pausas)
+    // 4) Recortar los clips del timeline con el PATRÓN CORRECTO de UXP:
+    //    reunir objetos con await ANTES, y hacer las acciones SÍNCRONAS dentro de lockedAccess+executeTransaction.
     setSt("4/4 Recortando en el timeline…");
-    stage = "trimTrackItems";
+    stage = "getTrackItems";
     let trimmed = 0, trimErrs = [];
     const vt = await seq.getVideoTrack(0);
     let titems = null;
     try { titems = await vt.getTrackItems(1, false); } catch (e) { try { titems = await vt.getTrackItems(); } catch (e2) { titems = null; } }
+
     if (titems && titems.length) {
       const n = Math.min(titems.length, cuts.length);
+      stage = "lockedAccess";
       try {
-        project.executeTransaction((cp) => {
-          let playhead = 0;
-          for (let i = 0; i < n; i++) {
-            const ti = titems[i], c = cuts[i];
-            cp.addAction(ti.createSetInPointAction(T(c.start)));
-            cp.addAction(ti.createSetOutPointAction(T(c.end)));
-            cp.addAction(ti.createSetStartAction(T(playhead)));
-            playhead += Math.max(0.1, (c.end - c.start));
-            trimmed++;
-          }
-        }, "CortesAI recorte total");
+        project.lockedAccess(() => {
+          project.executeTransaction((cp) => {
+            let playhead = 0;
+            for (let i = 0; i < n; i++) {
+              const ti = titems[i], c = cuts[i];
+              cp.addAction(ti.createSetInPointAction(T(c.start)));
+              cp.addAction(ti.createSetOutPointAction(T(c.end)));
+              cp.addAction(ti.createSetStartAction(T(playhead)));
+              playhead += Math.max(0.1, (c.end - c.start));
+              trimmed++;
+            }
+          }, "CortesAI recorte");
+        });
       } catch (e) { trimErrs.push("trim: " + ((e && e.message) ? e.message : String(e))); trimmed = 0; }
     } else { trimErrs.push("sin track items para recortar"); }
 
@@ -534,7 +539,7 @@ async function buildTimeline() {
     try { await project.openSequence(seq); } catch (e) {}
 
     const resumen = "Secuencia creada · " + media.length + " clips · recortados=" + trimmed +
-          (trimErrs.length ? (" · err: " + trimErrs[0]) : " (OK)");
+          (trimErrs.length ? (" · err: " + trimErrs[0]) : " (OK, 4-6s)");
     setSt("✅ " + resumen);
     try { await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" },
       body: "CONSTRUIR\n" + resumen + (trimErrs.length ? ("\n" + trimErrs.slice(0, 5).join("\n")) : "") }); } catch (e) {}
