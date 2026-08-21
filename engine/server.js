@@ -243,9 +243,11 @@ async function processFolder(folderPath, settings, profile) {
     const input = path.join(folderPath, name);
     const audio = path.join(os.tmpdir(), "cortesai_" + Date.now() + "_" + Math.floor(perClip.length) + ".mp3");
     try {
-      // 1) Intento por AUDIO (diálogo): transcribir + analizar
+      // 1) Intento por AUDIO (diálogo): transcribir + analizar.
+      //    En modo LOCAL (sin API) se salta: solo análisis visual, 100% en el equipo.
       let audioCuts = [], textLen = 0, dur = 0;
-      try {
+      const useApi = settings.transcription !== "local" && !!settings.apiKey;
+      if (useApi) try {
         await extractAudio(input, audio);
         const tr = await transcribe(audio, settings.apiKey, settings.language);
         dur = tr.duration || 0;
@@ -382,7 +384,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.5" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.6" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
@@ -392,7 +394,7 @@ const server = http.createServer((req, res) => {
       try {
         const { folderPath, settings, profile } = JSON.parse(body);
         if (!folderPath) throw new Error("Falta la carpeta.");
-        if (!settings || !settings.apiKey) throw new Error("Falta la API key de Groq.");
+        if (settings && settings.transcription !== "local" && !settings.apiKey) throw new Error("Falta la API key de Groq (o usa modo Local).");
         const out = await processFolder(folderPath, settings, profile);
         res.end(JSON.stringify({
           ok: true,

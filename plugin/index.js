@@ -110,8 +110,8 @@ async function start() {
   const s = gatherSettings();
   if (!selectedFolder || !videoEntries.length) { showConfigError("Primero elige una carpeta con videos."); return; }
   if (s.transcription === "api" && !s.apiKey) { showConfigError("Pega tu API key de Groq (o cambia a modo Local)."); return; }
-  if (s.transcription === "api") { localStorage.setItem("groqKey", s.apiKey); return realProcess(s); }
-  return simulate(s); // modo local: aún simulado
+  if (s.transcription === "api") localStorage.setItem("groqKey", s.apiKey);
+  return realProcess(s);  // Local y API usan el motor. Local = solo visual (sin API); API = audio + visual.
 }
 
 // ---------- Motor real (API / Groq) ----------
