@@ -151,7 +151,7 @@ function assembleMontage(perClip, settings) {
     return true;
   };
 
-  const MIN_SCORE = 0.4;   // compuerta de calidad: descarta segmentos mediocres
+  const MIN_SCORE = 0.28;  // compuerta suave: descarta lo muy malo, pero deja pasar 1 buen momento por video
   tryAdd(bestHook, "hook", ctaLen);
   for (const c of all) {
     if (c === bestHook || c === bestCta) continue;
@@ -208,9 +208,9 @@ function shotCandidates(shots, profile) {
     if (len < 0.8) continue;                              // descarta parpadeos/transiciones
     const end = s.start + Math.min(len, maxC);            // recorta tomas largas
     len = end - s.start;
-    // Puntaje bajo a las tomas puramente visuales: el diálogo real (audio) tiene prioridad,
-    // y la compuerta de calidad descarta las tomas "porque sí".
-    const score = 0.3 + 0.15 * (1 - Math.min(1, Math.abs(len - ideal) / ideal)); // ~0.30–0.45
+    // El diálogo real (audio) tiene prioridad, pero las tomas visuales deben poder entrar
+    // (si no, videos sin diálogo quedarían fuera).
+    const score = 0.4 + 0.2 * (1 - Math.min(1, Math.abs(len - ideal) / ideal)); // ~0.40–0.60
     out.push({ start: Number(s.start.toFixed(2)), end: Number(end.toFixed(2)), role: "cuerpo",
                score: Number(score.toFixed(2)), reason: "toma visual", source: "visual" });
   }
@@ -356,7 +356,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.2" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.3" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
