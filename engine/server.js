@@ -75,7 +75,7 @@ async function analyze(tr, profile, settings, apiKey) {
     "3) FUNCIÓN: cada corte debe tener una función concreta hacia el objetivo. No conserves un segmento solo porque suene interesante; determina qué aporta y cómo se conecta con lo demás.",
     "4) DURACIÓN: cada corte entre 2 y 6 segundos (2-3s si dice/muestra algo puntual y relevante; NUNCA más de 6s).",
     "5) PUNTOS DE CORTE naturales y precisos: no cortes a mitad de palabra, frase, idea, gesto o acción; usa pausas naturales y finales de frase.",
-    "6) SÉ EXIGENTE: mejor pocos cortes CON SENTIDO que muchos vacíos. Si el video no tiene nada relevante, NO elijas nada de él.",
+    "6) SÉ EXIGENTE pero NO descartes el habla con contenido: si la persona DICE algo con sentido (una frase, una idea, una emoción), elige al menos ese mejor momento hablado. Solo devuelve vacío si de verdad no hay NADA aprovechable ni dicho ni mostrado.",
     (p.respectSentences ? "Respeta frases completas; no cortes ideas a la mitad." : ""),
     p.structure ? ("Asigna a cada corte un rol según la estructura " + p.structure + ": hook (atención inmediata), gancho (curiosidad/promesa), cuerpo (desarrollo/contenido), cta (cierre/acción).") : "",
     "7) PUNTÚA cada corte de 0 a 1 evaluando: relevancia para el objetivo, relevancia del audio/texto, impacto/retención, energía/ritmo y calidad técnica. En 'reason' explica breve por qué se conserva.",
@@ -130,7 +130,10 @@ function assembleMontage(perClip, settings) {
         end = start + MINCUT;
         if (clipDur && end > clipDur) { end = clipDur; start = Math.max(0, clipDur - MINCUT); }
       }
-      if (end - start >= 1) all.push(Object.assign({}, c, { clip: r.video, start: +start.toFixed(2), end: +end.toFixed(2) }));
+      // El diálogo (audio) pesa más que una toma visual genérica
+      let score = c.score || 0;
+      if (c.source === "audio") score = Math.min(1, score + 0.15);
+      if (end - start >= 1) all.push(Object.assign({}, c, { clip: r.video, start: +start.toFixed(2), end: +end.toFixed(2), score: score }));
     });
   });
   all.sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -250,6 +253,16 @@ async function processFolder(folderPath, settings, profile) {
         if (textLen > 4) {   // hay diálogo real
           const plan = await analyze(tr, profile, settings, settings.apiKey);
           audioCuts = (plan.cuts || []).map(c => Object.assign({ source: "audio" }, c));
+          // Plan B: hay habla con contenido pero la IA no eligió → saca su MEJOR momento hablado
+          if (!audioCuts.length && textLen > 40) {
+            const segs = (tr.segments || []).filter(s => (s.text || "").trim().length > 8)
+              .sort((a, b) => (b.text || "").length - (a.text || "").length);
+            if (segs.length) {
+              let st = Math.max(0, segs[0].start), en = Math.min(segs[0].end, st + MAXCUT);
+              if (en - st < MINCUT) en = st + MINCUT;
+              audioCuts = [{ source: "audio", start: st, end: en, role: "cuerpo", score: 0.6, reason: "mejor momento hablado" }];
+            }
+          }
         }
       } catch (audioErr) { /* seguimos con visual */ }
 
@@ -369,7 +382,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.4" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.5" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
