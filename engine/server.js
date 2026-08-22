@@ -26,8 +26,40 @@ const MODEL_LLM = "openai/gpt-oss-120b";   // modelo grande de Groq (gratis) →
 // ---- Visión IA (Gemini) ----
 // Analiza fotogramas del video para elegir el mejor momento visual (videos sin diálogo).
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
-const MODEL_VISION = "gemini-2.5-flash";   // visión de Google (nivel gratis, sin tarjeta)
-const VISION_FRAMES_DEFAULT = 5;           // fotogramas analizados por video (calidad vs. cuota)
+const MODEL_VISION = "gemini-flash-latest";   // respaldo (alias estable de Google)
+const VISION_FRAMES_DEFAULT = 5;              // fotogramas analizados por video (calidad vs. cuota)
+
+// El nombre exacto del modelo cambia con el tiempo (2.5, 3, etc.). En vez de
+// hardcodearlo, preguntamos a la cuenta del usuario qué modelos tiene y elegimos
+// el mejor de visión disponible. Se resuelve una vez y se guarda en caché.
+let RESOLVED_VISION_MODEL = null;
+async function resolveVisionModel(key) {
+  if (RESOLVED_VISION_MODEL) return RESOLVED_VISION_MODEL;
+  try {
+    const r = await fetch(GEMINI + "?key=" + encodeURIComponent(key) + "&pageSize=200");
+    if (r.ok) {
+      const data = await r.json();
+      const models = (data.models || [])
+        .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+        .map(m => (m.name || "").replace(/^models\//, ""));
+      // Orden de preferencia: mejor calidad de visión primero, luego versiones "lite" (más cuota).
+      const prefer = ["gemini-flash-latest", "gemini-3-flash", "gemini-2.5-flash",
+                      "gemini-flash-lite-latest", "gemini-3-flash-lite", "gemini-2.5-flash-lite"];
+      for (const p of prefer) if (models.includes(p)) { RESOLVED_VISION_MODEL = p; break; }
+      // Si ninguno coincide exacto, cualquier "flash" apto para visión (evita thinking/audio/tts/image-gen).
+      if (!RESOLVED_VISION_MODEL) {
+        const flash = models.find(m => /flash/.test(m) && !/(thinking|audio|tts|image|embedding|live)/.test(m));
+        if (flash) RESOLVED_VISION_MODEL = flash;
+      }
+      if (RESOLVED_VISION_MODEL) { console.log("  🔎 Visión IA · modelo elegido: " + RESOLVED_VISION_MODEL); return RESOLVED_VISION_MODEL; }
+      console.log("  ⚠️  No hallé modelo de visión en la lista; uso respaldo " + MODEL_VISION);
+    } else {
+      console.log("  ⚠️  ListModels " + r.status + "; uso respaldo " + MODEL_VISION);
+    }
+  } catch (e) { /* sin lista → respaldo */ }
+  RESOLVED_VISION_MODEL = MODEL_VISION;   // respaldo alias
+  return RESOLVED_VISION_MODEL;
+}
 
 // Marca de "límite diario alcanzado" para poder avisar y caer al método normal.
 class QuotaError extends Error { constructor(m){ super(m); this.name = "QuotaError"; } }
@@ -273,14 +305,16 @@ async function geminiScoreFrame(imgPath, profile, settings) {
     contents: [{ parts: [ { text: prompt }, { inline_data: { mime_type: "image/jpeg", data: b64 } } ] }],
     generationConfig: { temperature: 0.2, responseMimeType: "application/json" }
   };
-  const r = await fetch(GEMINI + "/" + MODEL_VISION + ":generateContent?key=" + encodeURIComponent(key), {
+  const model = await resolveVisionModel(key);
+  const r = await fetch(GEMINI + "/" + model + ":generateContent?key=" + encodeURIComponent(key), {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
   });
   if (r.status === 429) throw new QuotaError("límite diario de Gemini");
   if (!r.ok) {
     const t = (await r.text()).slice(0, 250);
     if (r.status === 403 || /quota|exhaust|RESOURCE_EXHAUSTED|rate/i.test(t)) throw new QuotaError(t);
-    throw new Error("Gemini " + r.status + ": " + t);
+    if (r.status === 404) RESOLVED_VISION_MODEL = null;   // modelo inválido → re-resolver en el próximo intento
+    throw new Error("Gemini " + r.status + " (modelo " + model + "): " + t);
   }
   const data = await r.json();
   let txt = "";
@@ -498,7 +532,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.0" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.1" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
