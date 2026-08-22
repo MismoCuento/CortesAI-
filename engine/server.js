@@ -23,6 +23,15 @@ const GROQ = "https://api.groq.com/openai/v1";
 const MODEL_STT = "whisper-large-v3-turbo";
 const MODEL_LLM = "openai/gpt-oss-120b";   // modelo grande de Groq (gratis) → mejor selección
 
+// ---- Visión IA (Gemini) ----
+// Analiza fotogramas del video para elegir el mejor momento visual (videos sin diálogo).
+const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
+const MODEL_VISION = "gemini-2.5-flash";   // visión de Google (nivel gratis, sin tarjeta)
+const VISION_FRAMES_DEFAULT = 5;           // fotogramas analizados por video (calidad vs. cuota)
+
+// Marca de "límite diario alcanzado" para poder avisar y caer al método normal.
+class QuotaError extends Error { constructor(m){ super(m); this.name = "QuotaError"; } }
+
 // ---- Localizar FFmpeg ----
 function findFfmpeg() {
   const cands = ["ffmpeg","/opt/homebrew/bin/ffmpeg","/usr/local/bin/ffmpeg","/usr/bin/ffmpeg",
@@ -233,11 +242,93 @@ function shotCandidates(shots, profile) {
   return out;
 }
 
+// ---- Extrae UN fotograma del video en un instante dado (jpg pequeño) ----
+function extractFrame(input, timeSec, output) {
+  return new Promise((resolve, reject) => {
+    if (!FFMPEG) return reject(new Error("FFmpeg no está instalado."));
+    // -ss antes de -i = búsqueda rápida; escala a 640px de ancho para gastar poco.
+    const args = ["-y", "-ss", String(Math.max(0, timeSec)), "-i", input,
+                  "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "4", output];
+    const p = spawn(FFMPEG, args);
+    let err = "";
+    p.stderr.on("data", d => { err += d.toString(); });
+    p.on("error", reject);
+    p.on("close", code => (code === 0 && fs.existsSync(output))
+      ? resolve() : reject(new Error("No se pudo extraer el fotograma: " + err.slice(-200))));
+  });
+}
+
+// ---- Gemini puntúa UN fotograma (0..1) según lo que se ve ----
+async function geminiScoreFrame(imgPath, profile, settings) {
+  const key = settings.geminiKey;
+  const b64 = fs.readFileSync(imgPath).toString("base64");
+  const p = profile || {};
+  const prompt = [
+    "Eres un editor de video que evalúa UN fotograma de un video tipo '" + (p.label || settings.videoType) + "'.",
+    "Objetivo del perfil: " + (p.scoringPrompt || "elegir los momentos visualmente más fuertes y relevantes."),
+    "Puntúa qué tan buen MOMENTO DE CORTE es este fotograma (0 a 1) valorando: caras/expresiones/personas, acción o movimiento interesante, nitidez (penaliza borroso o movido), producto u objeto principal claro, texto en pantalla legible, y buena composición/iluminación.",
+    "Devuelve SOLO JSON: {\"score\": number_0a1, \"reason\": \"breve (máx 8 palabras)\"}."
+  ].join("\n");
+  const body = {
+    contents: [{ parts: [ { text: prompt }, { inline_data: { mime_type: "image/jpeg", data: b64 } } ] }],
+    generationConfig: { temperature: 0.2, responseMimeType: "application/json" }
+  };
+  const r = await fetch(GEMINI + "/" + MODEL_VISION + ":generateContent?key=" + encodeURIComponent(key), {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+  });
+  if (r.status === 429) throw new QuotaError("límite diario de Gemini");
+  if (!r.ok) {
+    const t = (await r.text()).slice(0, 250);
+    if (r.status === 403 || /quota|exhaust|RESOURCE_EXHAUSTED|rate/i.test(t)) throw new QuotaError(t);
+    throw new Error("Gemini " + r.status + ": " + t);
+  }
+  const data = await r.json();
+  let txt = "";
+  try { txt = data.candidates[0].content.parts[0].text; } catch (e) { txt = ""; }
+  let out; try { out = JSON.parse(txt); } catch (e) { out = { score: 0.5, reason: "visión IA" }; }
+  let sc = Number(out.score); if (isNaN(sc)) sc = 0.5;
+  return { score: Math.max(0, Math.min(1, sc)), reason: out.reason || "visión IA" };
+}
+
+// Elige N elementos repartidos de forma pareja a lo largo del arreglo.
+function pickEvenly(arr, n) {
+  if (arr.length <= n) return arr.slice();
+  const out = [], step = arr.length / n;
+  for (let i = 0; i < n; i++) out.push(arr[Math.floor(i * step)]);
+  return out;
+}
+
+// ---- Análisis VISUAL con Gemini: saca pocos frames buenos y los puntúa 1 a 1 ----
+// Devuelve candidatos con score real de visión. Lanza QuotaError si se acabó la cuota.
+async function analyzeVisualGemini(input, profile, settings, shots, dur) {
+  const n = Math.max(1, Math.min(12, settings.visionFrames || VISION_FRAMES_DEFAULT));
+  const picks = pickEvenly(shots, n);
+  const minC = (profile && profile.minClip) ? profile.minClip : 2;
+  const maxC = (profile && profile.maxClip) ? profile.maxClip : 6;
+  const out = [];
+  for (let i = 0; i < picks.length; i++) {
+    const s = picks[i];
+    const mid = (s.start + s.end) / 2;
+    const frame = path.join(os.tmpdir(), "caiframe_" + Date.now() + "_" + i + ".jpg");
+    try {
+      await extractFrame(input, mid, frame);
+      const g = await geminiScoreFrame(frame, profile, settings);   // QuotaError sube y corta
+      let st = Math.max(0, s.start);
+      let en = Math.min(s.end, st + maxC);
+      if (en - st < minC) { en = st + minC; if (dur && en > dur) { en = dur; st = Math.max(0, dur - minC); } }
+      if (en - st >= 1) out.push({ start: +st.toFixed(2), end: +en.toFixed(2),
+        role: "cuerpo", score: g.score, reason: g.reason, source: "vision" });
+    } finally { try { fs.unlinkSync(frame); } catch (e) {} }
+  }
+  return out;
+}
+
 async function processFolder(folderPath, settings, profile) {
   const files = fs.readdirSync(folderPath).filter(isRealVideo).sort();
   if (!files.length) throw new Error("No se encontraron videos válidos en la carpeta.");
   const max = (settings.maxVideos && settings.maxVideos > 0) ? settings.maxVideos : files.length;
   const perClip = [], skipped = [];
+  let visionUsed = 0, visionLimitReached = false;   // control de la Visión IA (Gemini)
   for (const name of files) {
     if (perClip.length >= max) break;
     const input = path.join(folderPath, name);
@@ -268,15 +359,37 @@ async function processFolder(folderPath, settings, profile) {
         }
       } catch (audioErr) { /* seguimos con visual */ }
 
-      // 2) Si no hubo diálogo útil → análisis VISUAL (tomas por cambio de escena)
+      // 2) Si no hubo diálogo útil → análisis VISUAL
       let cuts = audioCuts;
       let mode = "audio";
       if (!cuts.length) {
         const sc = await detectScenes(input);
         if (!dur) dur = sc.duration;
         const shots = scenesToShots(sc.times, sc.duration || dur, profile);
-        cuts = shotCandidates(shots, profile);
-        mode = "visual";
+        // 2a) Visión IA (Gemini) si está activada, hay key y no se agotó la cuota
+        const useVision = settings.vision && settings.geminiKey && !visionLimitReached;
+        if (useVision) {
+          try {
+            cuts = await analyzeVisualGemini(input, profile, settings, shots, sc.duration || dur);
+            mode = "visión-IA";
+            if (cuts.length) visionUsed++;
+            else { cuts = shotCandidates(shots, profile); mode = "visual"; }   // sin frames útiles → normal
+          } catch (ve) {
+            cuts = shotCandidates(shots, profile);
+            if (ve instanceof QuotaError) {
+              visionLimitReached = true;                 // se acabó la cuota → avisar + seguir por escena
+              mode = "visual (límite IA)";
+              console.log("  ⚠️  Límite diario de Gemini alcanzado — sigo con el método por escena.");
+            } else {
+              mode = "visual";
+              console.log("  ⚠️  Visión IA falló (" + (ve.message || ve).toString().slice(0, 80) + ") — método por escena.");
+            }
+          }
+        } else {
+          // 2b) Método normal (detección de escenas) — sin visión IA
+          cuts = shotCandidates(shots, profile);
+          mode = "visual";
+        }
       }
 
       perClip.push({ video: name, duration: dur, cuts: cuts, mode: mode });
@@ -292,7 +405,8 @@ async function processFolder(folderPath, settings, profile) {
     throw new Error("No se pudo procesar ningún video. Primer error: " + (skipped[0] ? skipped[0].error : "desconocido"));
   }
   const montage = assembleMontage(perClip, settings);
-  return { totalVideos: files.length, processed: perClip.length, skipped, perClip, montage };
+  return { totalVideos: files.length, processed: perClip.length, skipped, perClip, montage,
+           visionUsed, visionLimitReached };
 }
 
 // ---- Genera un script ExtendScript (.jsx) que arma el timeline recortado ----
@@ -384,7 +498,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.6.7" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.0" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
@@ -402,7 +516,9 @@ const server = http.createServer((req, res) => {
           processed: out.processed,
           skipped: out.skipped,
           montage: out.montage,          // { cuts:[{clip,start,end,role,score,reason}], totalDuration, target }
-          perClip: out.perClip
+          perClip: out.perClip,
+          visionUsed: out.visionUsed,             // nº de videos analizados con Visión IA
+          visionLimitReached: out.visionLimitReached   // true si se agotó la cuota diaria de Gemini
         }));
       } catch (e) {
         res.statusCode = 500;

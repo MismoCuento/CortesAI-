@@ -86,6 +86,21 @@
       </select>
       <div class="hint">Combina los mejores momentos de estos videos en un solo montaje.</div>
 
+      <!-- Visión IA -->
+      <label class="field-label">👁️ Visión IA (videos sin diálogo)</label>
+      <div class="radio-row">
+        <label class="radio"><input type="radio" name="vision" value="off" checked /> Desactivada</label>
+        <label class="radio"><input type="radio" name="vision" value="on" /> Activada</label>
+      </div>
+      <div class="hint">La IA mira los fotogramas y elige el mejor momento visual (caras, acción, nitidez, producto, texto). Ideal para anuncios y b-roll sin voz.</div>
+
+      <!-- API key de Gemini (solo si la Visión IA está activada) -->
+      <div id="geminiKeyRow" class="hidden">
+        <label class="field-label">🔑 API key de Gemini</label>
+        <input id="geminiKey" type="password" placeholder="AIza..." />
+        <div class="hint">Gratis en aistudio.google.com/apikey · Se guarda solo en tu equipo. Si llegas al límite diario, pega otra key (de otro correo).</div>
+      </div>
+
       <button id="btnStart" class="btn btn-primary btn-start">▶  Iniciar</button>
       <div id="configError" class="error-msg hidden"></div>
     </section>
@@ -109,7 +124,7 @@
       <button id="btnNew" class="btn btn-secondary" style="margin-top:12px">Nuevo proceso</button>
     </section>
 
-    <footer class="footer">v0.9.0 · nueva interfaz</footer>
+    <footer class="footer">v0.10.0 · Visión IA (Gemini)</footer>
   </div>
 
   <script src="index.js"></script>

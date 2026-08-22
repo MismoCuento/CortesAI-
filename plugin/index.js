@@ -100,7 +100,9 @@ function gatherSettings() {
     language: $("language").value,
     transcription: document.querySelector('input[name="transcribe"]:checked').value,
     apiKey: ($("apiKey").value||"").trim(),
-    maxVideos: parseInt($("maxVideos").value, 10)
+    maxVideos: parseInt($("maxVideos").value, 10),
+    vision: document.querySelector('input[name="vision"]:checked').value === "on",
+    geminiKey: ($("geminiKey").value||"").trim()
   };
 }
 
@@ -110,7 +112,10 @@ async function start() {
   const s = gatherSettings();
   if (!selectedFolder || !videoEntries.length) { showConfigError("Primero elige una carpeta con videos."); return; }
   if (s.transcription === "api" && !s.apiKey) { showConfigError("Pega tu API key de Groq (o cambia a modo Local)."); return; }
+  if (s.vision && !s.geminiKey) { showConfigError("Activaste la Visión IA pero falta la API key de Gemini. Pégala o desactiva la Visión IA."); return; }
   if (s.transcription === "api") localStorage.setItem("groqKey", s.apiKey);
+  localStorage.setItem("visionOn", s.vision ? "1" : "0");
+  if (s.geminiKey) localStorage.setItem("geminiKey", s.geminiKey);
   return realProcess(s);  // Local y API usan el motor. Local = solo visual (sin API); API = audio + visual.
 }
 
@@ -222,9 +227,21 @@ function showMontage(data, s) {
   const m = data.montage || { cuts: [] };
   const cuts = m.cuts || [];
   lastMontage = { folder: (selectedFolder && selectedFolder.nativePath) || "", cuts: cuts, name: currentProfile().label };
-  let html = "<b>✅ Montaje calculado (real)</b><br/>";
+  let html = "";
+  // Aviso claro si Gemini se quedó sin cuota diaria (siguió con el método por escena)
+  if (data.visionLimitReached) {
+    html += "<div style='background:#3a2a00;border:1px solid #b8860b;padding:10px;border-radius:8px;margin-bottom:12px'>" +
+            "⚠️ <b>Límite diario de la API de Gemini alcanzado.</b><br/>" +
+            "Los videos restantes se analizaron con el método normal (por cambio de escena). " +
+            "Para volver a usar la Visión IA hoy, pega otra API key de Gemini (de otro correo) en la configuración." +
+            "</div>";
+  }
+  html += "<b>✅ Montaje calculado (real)</b><br/>";
   html += "Videos procesados: <b>" + data.processed + "</b> de " + data.totalVideos +
           (data.skipped && data.skipped.length ? (" · " + data.skipped.length + " saltado(s)") : "") + "<br/>";
+  if (typeof data.visionUsed === "number" && data.visionUsed > 0) {
+    html += "👁️ Visión IA usada en: <b>" + data.visionUsed + "</b> video(s)<br/>";
+  }
   html += "Cortes en el montaje: <b>" + cuts.length + "</b> · Duración total: <b>" + fmt(m.totalDuration) + "</b>" +
           (m.target ? (" (objetivo " + fmt(m.target) + ")") : "") + "<br/><br/>";
   html += "<b>Línea de tiempo propuesta:</b><br/>";
@@ -600,11 +617,16 @@ function toggleApiKey(){
   const isApi = document.querySelector('input[name="transcribe"]:checked').value === "api";
   $("apiKeyRow").classList.toggle("hidden", !isApi);
 }
+function toggleVision(){
+  const on = document.querySelector('input[name="vision"]:checked').value === "on";
+  $("geminiKeyRow").classList.toggle("hidden", !on);
+}
 function bind() {
   $("btnPickFolder").addEventListener("click", pickFolder);
   $("videoType").addEventListener("change", updateTypeDesc);
   $("duration").addEventListener("change", () => { $("durationCustom").classList.toggle("hidden", $("duration").value!=="custom"); });
   document.querySelectorAll('input[name="transcribe"]').forEach(r => r.addEventListener("change", toggleApiKey));
+  document.querySelectorAll('input[name="vision"]').forEach(r => r.addEventListener("change", toggleVision));
   $("btnStart").addEventListener("click", start);
   $("btnCancel").addEventListener("click", ()=>{ cancelRequested = true; hideProgressError(); showView("config"); });
   $("btnBuild").addEventListener("click", buildTimeline);
@@ -617,7 +639,14 @@ function bind() {
   await loadProfiles();
   const saved = localStorage.getItem("groqKey");
   if (saved) $("apiKey").value = saved;
+  const savedGem = localStorage.getItem("geminiKey");
+  if (savedGem) $("geminiKey").value = savedGem;
+  if (localStorage.getItem("visionOn") === "1") {
+    const on = document.querySelector('input[name="vision"][value="on"]');
+    if (on) on.checked = true;
+  }
   toggleApiKey();
+  toggleVision();
   showView("config");
   refreshEngineStatus();
   setInterval(refreshEngineStatus, 5000);   // mantiene el estado del motor al día
