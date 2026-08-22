@@ -63,6 +63,7 @@ async function resolveVisionModel(key) {
 
 // Marca de "límite diario alcanzado" para poder avisar y caer al método normal.
 class QuotaError extends Error { constructor(m){ super(m); this.name = "QuotaError"; } }
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // ---- Localizar FFmpeg ----
 function findFfmpeg() {
@@ -306,22 +307,42 @@ async function geminiScoreFrame(imgPath, profile, settings) {
     generationConfig: { temperature: 0.2, responseMimeType: "application/json" }
   };
   const model = await resolveVisionModel(key);
-  const r = await fetch(GEMINI + "/" + model + ":generateContent?key=" + encodeURIComponent(key), {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
-  });
-  if (r.status === 429) throw new QuotaError("límite diario de Gemini");
-  if (!r.ok) {
-    const t = (await r.text()).slice(0, 250);
-    if (r.status === 403 || /quota|exhaust|RESOURCE_EXHAUSTED|rate/i.test(t)) throw new QuotaError(t);
-    if (r.status === 404) RESOLVED_VISION_MODEL = null;   // modelo inválido → re-resolver en el próximo intento
-    throw new Error("Gemini " + r.status + " (modelo " + model + "): " + t);
+  const url = GEMINI + "/" + model + ":generateContent?key=" + encodeURIComponent(key);
+
+  // Reintenta ante errores TEMPORALES (503 sobrecarga, 500, o 429 por minuto).
+  // El 403 y el 429 de cuota DIARIA sí cortan (avisar + caer a método por escena).
+  let lastErr = "";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let r;
+    try {
+      r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    } catch (netErr) { lastErr = "red: " + (netErr.message || netErr); await sleep(700 * (attempt + 1)); continue; }
+
+    if (r.ok) {
+      const data = await r.json();
+      let txt = ""; try { txt = data.candidates[0].content.parts[0].text; } catch (e) { txt = ""; }
+      let out; try { out = JSON.parse(txt); } catch (e) { out = { score: 0.5, reason: "visión IA" }; }
+      let sc = Number(out.score); if (isNaN(sc)) sc = 0.5;
+      return { score: Math.max(0, Math.min(1, sc)), reason: out.reason || "visión IA" };
+    }
+
+    const t = (await r.text()).slice(0, 300);
+    if (r.status === 403) throw new QuotaError(t);
+    if (r.status === 404) { RESOLVED_VISION_MODEL = null; throw new Error("Gemini 404 (modelo " + model + "): " + t); }
+    if (r.status === 429) {
+      // Cuota DIARIA agotada → cortar. Límite por MINUTO → esperar y reintentar.
+      if (/per.?day|daily|day/i.test(t) && !/per.?min|minute/i.test(t)) throw new QuotaError(t);
+      lastErr = "429 " + t;
+    } else if (r.status === 503 || r.status === 500 || r.status === 429) {
+      lastErr = r.status + " " + t;   // sobrecarga temporal → reintentar
+    } else {
+      throw new Error("Gemini " + r.status + ": " + t);
+    }
+    await sleep(800 * Math.pow(2, attempt));   // 0.8s → 1.6s → 3.2s → 6.4s → 12.8s
   }
-  const data = await r.json();
-  let txt = "";
-  try { txt = data.candidates[0].content.parts[0].text; } catch (e) { txt = ""; }
-  let out; try { out = JSON.parse(txt); } catch (e) { out = { score: 0.5, reason: "visión IA" }; }
-  let sc = Number(out.score); if (isNaN(sc)) sc = 0.5;
-  return { score: Math.max(0, Math.min(1, sc)), reason: out.reason || "visión IA" };
+  // Agotados los reintentos
+  if (/^429/.test(lastErr)) throw new QuotaError(lastErr);
+  throw new Error("Gemini no respondió tras varios reintentos: " + lastErr);
 }
 
 // Elige N elementos repartidos de forma pareja a lo largo del arreglo.
@@ -353,6 +374,7 @@ async function analyzeVisualGemini(input, profile, settings, shots, dur) {
       if (en - st >= 1) out.push({ start: +st.toFixed(2), end: +en.toFixed(2),
         role: "cuerpo", score: g.score, reason: g.reason, source: "vision" });
     } finally { try { fs.unlinkSync(frame); } catch (e) {} }
+    if (i < picks.length - 1) await sleep(250);   // ritmo suave entre peticiones
   }
   return out;
 }
@@ -532,7 +554,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.1" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.2" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
