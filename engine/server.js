@@ -26,8 +26,8 @@ const MODEL_LLM = "openai/gpt-oss-120b";   // modelo grande de Groq (gratis) →
 // ---- Visión IA (Gemini) ----
 // Analiza fotogramas del video para elegir el mejor momento visual (videos sin diálogo).
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
-const MODEL_VISION = "gemini-flash-latest";   // respaldo (alias estable de Google)
-const VISION_FRAMES_DEFAULT = 5;              // fotogramas analizados por video (calidad vs. cuota)
+const MODEL_VISION = "gemini-flash-lite-latest";   // respaldo: lite = más cuota diaria y por minuto
+const VISION_FRAMES_DEFAULT = 5;                   // fotogramas analizados por video (calidad vs. cuota)
 
 // El nombre exacto del modelo cambia con el tiempo (2.5, 3, etc.). En vez de
 // hardcodearlo, preguntamos a la cuenta del usuario qué modelos tiene y elegimos
@@ -42,9 +42,10 @@ async function resolveVisionModel(key) {
       const models = (data.models || [])
         .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
         .map(m => (m.name || "").replace(/^models\//, ""));
-      // Orden de preferencia: mejor calidad de visión primero, luego versiones "lite" (más cuota).
-      const prefer = ["gemini-flash-latest", "gemini-3-flash", "gemini-2.5-flash",
-                      "gemini-flash-lite-latest", "gemini-3-flash-lite", "gemini-2.5-flash-lite"];
+      // Orden de preferencia: "lite" primero (mucha más cuota diaria/min, calidad de visión casi igual
+      // para elegir frames); si no hay lite, cae a los flash completos.
+      const prefer = ["gemini-flash-lite-latest", "gemini-3-flash-lite", "gemini-2.5-flash-lite",
+                      "gemini-flash-latest", "gemini-3-flash", "gemini-2.5-flash"];
       for (const p of prefer) if (models.includes(p)) { RESOLVED_VISION_MODEL = p; break; }
       // Si ninguno coincide exacto, cualquier "flash" apto para visión (evita thinking/audio/tts/image-gen).
       if (!RESOLVED_VISION_MODEL) {
@@ -326,21 +327,32 @@ async function geminiScoreFrame(imgPath, profile, settings) {
       return { score: Math.max(0, Math.min(1, sc)), reason: out.reason || "visión IA" };
     }
 
-    const t = (await r.text()).slice(0, 300);
+    const full = await r.text();               // completo (para leer retryDelay)
+    const t = full.slice(0, 300);
     if (r.status === 403) throw new QuotaError(t);
     if (r.status === 404) { RESOLVED_VISION_MODEL = null; throw new Error("Gemini 404 (modelo " + model + "): " + t); }
     if (r.status === 429) {
-      // Cuota DIARIA agotada → cortar. Límite por MINUTO → esperar y reintentar.
-      if (/per.?day|daily|day/i.test(t) && !/per.?min|minute/i.test(t)) throw new QuotaError(t);
+      // Google indica cuánto esperar en "retryDelay". Corto = límite por MINUTO (esperar y reintentar);
+      // muy largo = cuota DIARIA agotada (no tiene sentido esperar → avisar y caer a método por escena).
+      let delay = 0;
+      try {
+        const j = JSON.parse(full);
+        const ri = ((j.error && j.error.details) || []).find(d => /RetryInfo/.test(d["@type"] || ""));
+        if (ri && ri.retryDelay) delay = parseFloat(ri.retryDelay) || 0;   // p.ej. "31s"
+      } catch (e) {}
+      if (delay > 90) throw new QuotaError("cuota diaria agotada (retryDelay " + delay + "s)");
       lastErr = "429 " + t;
-    } else if (r.status === 503 || r.status === 500 || r.status === 429) {
-      lastErr = r.status + " " + t;   // sobrecarga temporal → reintentar
-    } else {
-      throw new Error("Gemini " + r.status + ": " + t);
+      await sleep(Math.max(2000 * (attempt + 1), delay * 1000));   // respeta el tiempo sugerido
+      continue;
     }
-    await sleep(800 * Math.pow(2, attempt));   // 0.8s → 1.6s → 3.2s → 6.4s → 12.8s
+    if (r.status === 503 || r.status === 500) {
+      lastErr = r.status + " " + t;                       // sobrecarga temporal → reintentar
+      await sleep(800 * Math.pow(2, attempt));            // 0.8s → 1.6s → 3.2s → 6.4s → 12.8s
+      continue;
+    }
+    throw new Error("Gemini " + r.status + ": " + t);
   }
-  // Agotados los reintentos
+  // Agotados los reintentos: si fue 429 persistente lo tratamos como límite; si no, error normal (cae a escena)
   if (/^429/.test(lastErr)) throw new QuotaError(lastErr);
   throw new Error("Gemini no respondió tras varios reintentos: " + lastErr);
 }
@@ -374,7 +386,7 @@ async function analyzeVisualGemini(input, profile, settings, shots, dur) {
       if (en - st >= 1) out.push({ start: +st.toFixed(2), end: +en.toFixed(2),
         role: "cuerpo", score: g.score, reason: g.reason, source: "vision" });
     } finally { try { fs.unlinkSync(frame); } catch (e) {} }
-    if (i < picks.length - 1) await sleep(250);   // ritmo suave entre peticiones
+    if (i < picks.length - 1) await sleep(600);   // ritmo suave entre peticiones (evita 429 por minuto)
   }
   return out;
 }
@@ -554,7 +566,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.2" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.3" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
