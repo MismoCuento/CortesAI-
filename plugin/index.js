@@ -568,11 +568,26 @@ async function buildTimeline() {
     if (!seq) throw new Error("createSequenceFromMedia vacío (media=" + media.length + ", nota=" + (notes[0] || "-") + ")");
     try { await project.openSequence(seq); } catch (e) {}
 
+    // CALIDAD: activar Máxima Profundidad de Bits + Máxima Calidad de Render.
+    // Es lo que evita que los clips 2K/4K se vean borrosos al escalarse en la secuencia.
+    stage = "calidad";
+    let qNote = "calidad: no aplicada";
+    try {
+      const settings = await seq.getSettings();
+      if (settings) {
+        try { if (settings.setMaximumBitDepth) await settings.setMaximumBitDepth(true); } catch (e) {}
+        try { if (settings.setMaxRenderQuality) await settings.setMaxRenderQuality(true); } catch (e) {}
+        if (seq.setSettings) { await seq.setSettings(settings); qNote = "calidad: máxima (bits + render)"; }
+        else qNote = "calidad: setSettings no disponible";
+      }
+    } catch (e) { qNote = "calidad: " + ((e && e.message) ? e.message : String(e)).slice(0, 60); }
+    notes.push(qNote);
+
     let placed = "?";
     try { const vt = await seq.getVideoTrack(0); let tis; try { tis = await vt.getTrackItems(1, false); } catch (e) { tis = await vt.getTrackItems(); } placed = (tis && tis.length != null) ? String(tis.length) : "?"; } catch (e) {}
 
     const resumen = "Secuencia · " + placed + " clips · " + (trimmed ? "recortados, sin huecos" : "completos (respaldo)") +
-          (notes.length ? (" · nota: " + notes[0]) : "");
+          " · " + qNote;
     setSt("✅ " + resumen);
     try { await fetch(ENGINE + "/log", { method: "POST", headers: { "Content-Type": "text/plain" },
       body: "CONSTRUIR\n" + resumen + (notes.length ? ("\n" + notes.slice(0, 3).join("\n")) : "") }); } catch (e) {}
