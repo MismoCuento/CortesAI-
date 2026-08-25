@@ -637,7 +637,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.11.1" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.11.2" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";

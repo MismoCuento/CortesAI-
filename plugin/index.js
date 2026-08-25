@@ -570,17 +570,24 @@ async function buildTimeline() {
 
     // CALIDAD: activar Máxima Profundidad de Bits + Máxima Calidad de Render.
     // Es lo que evita que los clips 2K/4K se vean borrosos al escalarse en la secuencia.
+    // Patrón correcto (26.x): getSettings → mutar setters → createSetSettingsAction dentro de transacción.
     stage = "calidad";
     let qNote = "calidad: no aplicada";
     try {
-      const settings = await seq.getSettings();
+      const settings = await seq.getSettings();          // reunir ANTES del lock
       if (settings) {
         try { if (settings.setMaximumBitDepth) await settings.setMaximumBitDepth(true); } catch (e) {}
         try { if (settings.setMaxRenderQuality) await settings.setMaxRenderQuality(true); } catch (e) {}
-        if (seq.setSettings) { await seq.setSettings(settings); qNote = "calidad: máxima (bits + render)"; }
-        else qNote = "calidad: setSettings no disponible";
+        if (seq.createSetSettingsAction) {
+          project.lockedAccess(() => {
+            project.executeTransaction((cp) => {
+              cp.addAction(seq.createSetSettingsAction(settings));
+            }, "CortesAI calidad");
+          });
+          qNote = "calidad: máxima (bits + render)";
+        } else qNote = "calidad: createSetSettingsAction no disponible";
       }
-    } catch (e) { qNote = "calidad: " + ((e && e.message) ? e.message : String(e)).slice(0, 60); }
+    } catch (e) { qNote = "calidad: " + ((e && e.message) ? e.message : String(e)).slice(0, 70); }
     notes.push(qNote);
 
     let placed = "?";
