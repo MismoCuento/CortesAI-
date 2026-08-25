@@ -236,11 +236,14 @@ function showMontage(data, s) {
             "Para volver a usar la Visión IA hoy, pega otra API key de Gemini (de otro correo) en la configuración." +
             "</div>";
   }
-  html += "<b>✅ Montaje calculado (real)</b><br/>";
+  html += "<b>✅ Montaje calculado (real)</b>" + (m.director ? " · 🎬 <b>Director IA</b>" : "") + "<br/>";
   html += "Videos procesados: <b>" + data.processed + "</b> de " + data.totalVideos +
           (data.skipped && data.skipped.length ? (" · " + data.skipped.length + " saltado(s)") : "") + "<br/>";
   if (typeof data.visionUsed === "number" && data.visionUsed > 0) {
     html += "👁️ Visión IA usada en: <b>" + data.visionUsed + "</b> video(s)<br/>";
+  }
+  if (m.director && m.notes) {
+    html += "<span style='color:#9a9a9a'>🎬 " + esc(m.notes) + "</span><br/>";
   }
   html += "Cortes en el montaje: <b>" + cuts.length + "</b> · Duración total: <b>" + fmt(m.totalDuration) + "</b>" +
           (m.target ? (" (objetivo " + fmt(m.target) + ")") : "") + "<br/><br/>";

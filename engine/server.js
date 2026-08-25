@@ -222,6 +222,67 @@ function assembleMontage(perClip, settings) {
   return { cuts: chosen, totalDuration: total, target: (target === Infinity ? null : target) };
 }
 
+// ---- PASE DIRECTOR: una IA mira TODOS los candidatos y arma el montaje final ----
+// A diferencia del ensamblaje mecánico, razona globalmente (gancho, variedad, ritmo, cierre).
+async function directorPass(perClip, settings, profile, apiKey) {
+  const target = targetSeconds(settings.duration);
+
+  // 1) Pool de candidatos normalizados a 2-6s (igual criterio que assembleMontage)
+  let pool = [];
+  perClip.forEach(r => {
+    const clipDur = r.duration || 0;
+    (r.cuts || []).forEach(c => {
+      let start = Math.max(0, c.start || 0), end = c.end || 0;
+      if (end - start > MAXCUT) end = start + MAXCUT;
+      if (end - start < MINCUT) { end = start + MINCUT; if (clipDur && end > clipDur) { end = clipDur; start = Math.max(0, clipDur - MINCUT); } }
+      if (end - start >= 1) pool.push({ clip: r.video, start: +start.toFixed(2), end: +end.toFixed(2),
+        role: c.role || "cuerpo", score: c.score || 0, source: c.source || "visual", reason: c.reason || "" });
+    });
+  });
+  if (!pool.length) return null;
+  pool.sort((a, b) => (b.score || 0) - (a.score || 0));
+  pool = pool.slice(0, 80);                 // tope para el prompt
+  pool.forEach((c, i) => { c.id = i; });
+
+  // 2) Prompt de DIRECTOR
+  const p = profile || {};
+  const targetTxt = target === Infinity ? "libre (solo lo mejor, ~30-60s)" : (target + " segundos");
+  const sys = [
+    "Eres el DIRECTOR de una edición de video. Recibes CLIPS CANDIDATOS (fragmentos ya recortados de varios videos) con lo que se dice/ve, duración, rol tentativo y puntuación.",
+    "Tu trabajo: ARMAR EL MONTAJE FINAL seleccionando y ORDENANDO los mejores candidatos para un video tipo '" + (p.label || settings.videoType) + "'.",
+    "Objetivo del perfil: " + (p.scoringPrompt || "máximo impacto y retención."),
+    p.structure ? ("Estructura " + p.structure + ": abre con un HOOK potente, desarrolla el CUERPO con variedad y cierra con CTA.") : "Abre fuerte, desarrolla con variedad y cierra bien.",
+    "REGLAS: (1) duración total cercana a " + targetTxt + "; (2) el primer clip debe ser el mejor gancho; (3) evita redundancia y clips repetitivos; (4) prioriza variedad entre videos fuente distintos; (5) descarta relleno débil aunque sobre espacio; (6) ordena para que fluya con ritmo.",
+    "Devuelve SOLO JSON: { \"cuts\": [ { \"id\": number, \"role\": \"hook|gancho|cuerpo|cta\" } ], \"notes\": \"breve\" }. Usa los id EXACTOS de la lista; el orden del arreglo ES el orden final del montaje."
+  ].join("\n");
+  const user = "CANDIDATOS:\n" + pool.map(c =>
+    "id=" + c.id + " | " + c.clip + " | " + (c.end - c.start).toFixed(1) + "s | rol:" + c.role +
+    " | " + c.source + " | score:" + (c.score || 0).toFixed(2) + " | " + (c.reason || "").slice(0, 90)
+  ).join("\n");
+
+  const r = await fetch(GROQ + "/chat/completions", {
+    method: "POST", headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: MODEL_LLM, temperature: 0.3, response_format: { type: "json_object" },
+      messages: [ { role: "system", content: sys }, { role: "user", content: user } ] })
+  });
+  if (!r.ok) throw new Error("Director " + r.status + ": " + (await r.text()).slice(0, 200));
+  const data = await r.json();
+  let out; try { out = JSON.parse(data.choices[0].message.content); } catch (e) { return null; }
+
+  // 3) Reconstruye el montaje final desde los id elegidos (en su orden)
+  const chosen = []; let total = 0;
+  (out.cuts || []).forEach(sel => {
+    const c = pool[sel.id];
+    if (!c) return;
+    if (chosen.some(x => x.clip === c.clip && x.start === c.start && x.end === c.end)) return;   // sin duplicados
+    chosen.push(Object.assign({}, c, { role: sel.role || c.role }));
+    total += (c.end - c.start);
+  });
+  if (!chosen.length) return null;
+  return { cuts: chosen, totalDuration: +total.toFixed(2), target: (target === Infinity ? null : target),
+           director: true, notes: out.notes || "" };
+}
+
 // ---- Análisis VISUAL (para video sin diálogo: anuncios, b-roll) ----
 // Detecta cambios de escena con FFmpeg y devuelve tiempos + duración total.
 function detectScenes(input) {
@@ -472,7 +533,17 @@ async function processFolder(folderPath, settings, profile) {
   if (!perClip.length) {
     throw new Error("No se pudo procesar ningún video. Primer error: " + (skipped[0] ? skipped[0].error : "desconocido"));
   }
-  const montage = assembleMontage(perClip, settings);
+  // PASE DIRECTOR (si hay key de Groq): la IA arma el montaje final razonando globalmente.
+  let montage = null;
+  if (settings.apiKey) {
+    try {
+      montage = await directorPass(perClip, settings, profile, settings.apiKey);
+      if (montage) console.log("  🎬 Director: montaje final con " + montage.cuts.length + " cortes (" + Math.round(montage.totalDuration) + "s).");
+    } catch (e) {
+      console.log("  ⚠️  Director falló (" + (e.message || e).toString().slice(0, 80) + ") — uso ensamblaje normal.");
+    }
+  }
+  if (!montage) montage = assembleMontage(perClip, settings);   // respaldo mecánico
   return { totalVideos: files.length, processed: perClip.length, skipped, perClip, montage,
            visionUsed, visionLimitReached };
 }
@@ -566,7 +637,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.url === "/health") {
     res.setHeader("Content-Type", "application/json");
-    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.10.3" }));
+    return res.end(JSON.stringify({ ok: true, ffmpeg: !!FFMPEG, version: "0.11.0" }));
   }
   if (req.method === "POST" && req.url === "/process") {
     let body = "";
