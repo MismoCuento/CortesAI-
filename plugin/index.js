@@ -226,7 +226,7 @@ async function processViaEngine(s) {
 function showMontage(data, s) {
   const m = data.montage || { cuts: [] };
   const cuts = m.cuts || [];
-  lastMontage = { folder: (selectedFolder && selectedFolder.nativePath) || "", cuts: cuts, name: currentProfile().label };
+  lastMontage = { folder: (selectedFolder && selectedFolder.nativePath) || "", cuts: cuts, name: currentProfile().label, format: (s && s.format) || "9:16" };
   let html = "";
   // Aviso claro si Gemini se quedó sin cuota diaria (siguió con el método por escena)
   if (data.visionLimitReached) {
@@ -573,9 +573,19 @@ async function buildTimeline() {
     // Patrón correcto (26.x): getSettings → mutar setters → createSetSettingsAction dentro de transacción.
     stage = "calidad";
     let qNote = "calidad: no aplicada";
+    // Resolución objetivo según el formato elegido (tus videos suelen ser 2160×3840).
+    const FMT = { "9:16": [2160, 3840], "16:9": [3840, 2160], "1:1": [2160, 2160], "4:5": [2160, 2700] };
+    const wantRes = FMT[(lastMontage && lastMontage.format) || "9:16"];   // undefined si "original"
     try {
       const settings = await seq.getSettings();          // reunir ANTES del lock
       if (settings) {
+        // 1) Forzar tamaño de frame (evita que la secuencia herede la resolución del 1er clip)
+        if (wantRes && settings.getVideoFrameRect && settings.setVideoFrameRect) {
+          try {
+            const rect = await settings.getVideoFrameRect();
+            if (rect) { rect.width = wantRes[0]; rect.height = wantRes[1]; await settings.setVideoFrameRect(rect); }
+          } catch (e) { qNote = "res: " + ((e && e.message) ? e.message : String(e)).slice(0, 50) + " · "; }
+        }
         try { if (settings.setMaximumBitDepth) await settings.setMaximumBitDepth(true); } catch (e) {}
         try { if (settings.setMaxRenderQuality) await settings.setMaxRenderQuality(true); } catch (e) {}
         if (seq.createSetSettingsAction) {
@@ -584,7 +594,7 @@ async function buildTimeline() {
               cp.addAction(seq.createSetSettingsAction(settings));
             }, "CortesAI calidad");
           });
-          qNote = "calidad: máxima (bits + render)";
+          qNote = "calidad: máxima (bits + render)" + (wantRes ? (" · " + wantRes[0] + "×" + wantRes[1]) : "");
         } else qNote = "calidad: createSetSettingsAction no disponible";
       }
     } catch (e) { qNote = "calidad: " + ((e && e.message) ? e.message : String(e)).slice(0, 70); }
